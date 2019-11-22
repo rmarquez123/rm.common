@@ -8,7 +8,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -24,47 +23,25 @@ import org.apache.commons.math3.util.Pair;
  *
  * @author Ricardo Marquez
  */
-public final class DefaultTimeSeries<R> implements TimeSeries<TimeStepValue<R>> {
+public class CustomTimeStepTimeSeries<T extends TimeStepValue<?>> implements TimeSeries<T> {
 
   private final DateTimeRange dateTimeRange;
   private final TemporalAmount timeInterval;
-  private final List<TimeStepValue<R>> records;
+  private final List<T> records;
 
   /**
    *
+   * @param timeInterval
+   * @param records
    */
-  public static <R> DefaultTimeSeries<R>
-    create(TemporalAmount timeInterval, List<? extends TimeStepValue<R>> records) {
-    return new DefaultTimeSeries<>(timeInterval, records);
-  }
-  
-    
-  /**
-   *
-   */
-  public static <R, T> DefaultTimeSeries<R>
-    create(TemporalAmount timeInterval, Collection<T> records, Function<T, TimeStepValue<R>> mapper) {
-    List<TimeStepValue<R>> mapped = new ArrayList<>();
-    for (T record : records) {
-      TimeStepValue<R> tsValue = mapper.apply(record);
-      mapped.add(tsValue); 
-    }
-    return new DefaultTimeSeries<>(timeInterval, mapped);
-  }
-
-  /**
-   *
-   * @param dateTimeRange
-   * @param timeStepValues
-   */
-  public DefaultTimeSeries(TemporalAmount timeInterval, List<? extends TimeStepValue<R>> records) {
+  public CustomTimeStepTimeSeries(TemporalAmount timeInterval, List<T> records) {
     Objects.requireNonNull(timeInterval);
     Objects.requireNonNull(records);
     if (records.isEmpty()) {
       throw new IllegalArgumentException("Records cannot be empty");
     }
     this.records = new ArrayList<>(records);
-    Collections.sort(this.records, (TimeStepValue<R> o1, TimeStepValue<R> o2) 
+    Collections.sort(this.records, (T o1, T o2)
       -> o1.getZoneDateTime().compareTo(o2.getZoneDateTime()));
     ZonedDateTime startDate = this.records.get(0).getZoneDateTime();
     ZonedDateTime endDate = this.records.get(this.records.size() - 1).getZoneDateTime();
@@ -79,13 +56,13 @@ public final class DefaultTimeSeries<R> implements TimeSeries<TimeStepValue<R>> 
    */
   private void validate() throws RuntimeException {
     for (int i = 1; i < this.records.size(); i++) {
-      TimeStepValue<R> previousRecord = this.records.get(i - 1);
-      TimeStepValue<R> currentRecord = this.records.get(i);
+      T previousRecord = this.records.get(i - 1);
+      T currentRecord = this.records.get(i);
       ZonedDateTime expectedPreviousDateTime = currentRecord.getZoneDateTime().minus(this.timeInterval);
       ZonedDateTime previousDateTime = previousRecord.getZoneDateTime();
       if (!expectedPreviousDateTime.equals(previousDateTime)) {
         throw new RuntimeException(
-          String.format("Invalid time steps found at index: %d, where expected date time is : %s ", 
+          String.format("Invalid time steps found at index: %d, where expected date time is : %s ",
             i, expectedPreviousDateTime)
         );
       }
@@ -134,7 +111,7 @@ public final class DefaultTimeSeries<R> implements TimeSeries<TimeStepValue<R>> 
    * @return
    */
   @Override
-  public boolean contains(TimeStepValue<R> timeStepValue) {
+  public boolean contains(T timeStepValue) {
     return this.dateTimeRange.contains(timeStepValue.getZoneDateTime());
   }
 
@@ -153,8 +130,8 @@ public final class DefaultTimeSeries<R> implements TimeSeries<TimeStepValue<R>> 
    * @return
    */
   @Override
-  public TimeStepValue<R> getFirst() {
-    TimeStepValue<R> result = this.records.get(0);
+  public T getFirst() {
+    T result = this.records.get(0);
     return result;
   }
 
@@ -163,8 +140,8 @@ public final class DefaultTimeSeries<R> implements TimeSeries<TimeStepValue<R>> 
    * @return
    */
   @Override
-  public TimeStepValue<R> getLast() {
-    TimeStepValue<R> result = this.records.get(this.records.size() - 1);
+  public T getLast() {
+    T result = this.records.get(this.records.size() - 1);
     return result;
   }
 
@@ -174,7 +151,7 @@ public final class DefaultTimeSeries<R> implements TimeSeries<TimeStepValue<R>> 
    * @return
    */
   @Override
-  public TimeStepValue<R> getNext(TimeStepValue<R> previous) {
+  public T getNext(T previous) {
     //To change body of generated methods, choose Tools | Templates.
     throw new UnsupportedOperationException("Not supported yet.");
   }
@@ -185,7 +162,7 @@ public final class DefaultTimeSeries<R> implements TimeSeries<TimeStepValue<R>> 
    * @return
    */
   @Override
-  public TimeStepValue<R> getPrevious(TimeStepValue<R> after) {
+  public T getPrevious(T after) {
     //To change body of generated methods, choose Tools | Templates.
     throw new UnsupportedOperationException("Not supported yet.");
   }
@@ -214,10 +191,10 @@ public final class DefaultTimeSeries<R> implements TimeSeries<TimeStepValue<R>> 
    * @return
    */
   @Override
-  public TimeStepValue<R> getTimeStepValue(ZonedDateTime dateTime) {
-    TimeStepValue<R> result = null;
+  public T getTimeStepValue(ZonedDateTime dateTime) {
+    T result = null;
     if (this.dateTimeRange.contains(dateTime)) {
-      for (TimeStepValue<R> record : this.records) {
+      for (T record : this.records) {
         if (Objects.equals(record.getZoneDateTime(), dateTime)) {
           result = record;
         }
@@ -231,7 +208,7 @@ public final class DefaultTimeSeries<R> implements TimeSeries<TimeStepValue<R>> 
    * @return
    */
   @Override
-  public Iterator<TimeStepValue<R>> iterator() {
+  public Iterator<T> iterator() {
     return this.records.iterator();
   }
 
@@ -241,17 +218,17 @@ public final class DefaultTimeSeries<R> implements TimeSeries<TimeStepValue<R>> 
    * @return
    */
   @Override
-  public TimeSeries<TimeStepValue<R>> average(TemporalAmount timeInterval,
-    Function<Pair<ZonedDateTime, Set<TimeStepValue<R>>>, TimeStepValue<R>> averaging) {
-    SortedSet<TimeStepValue<R>> copy = new TreeSet<>(this.records);
+  public TimeSeries<T> average(TemporalAmount timeInterval,
+    Function<Pair<ZonedDateTime, Set<T>>, T> averaging) {
+    SortedSet<T> copy = new TreeSet<>(this.records);
     Iterable<ZonedDateTime> iterator = this.dateTimeRange.iterator(timeInterval);
-    List<TimeStepValue<R>> newRecords = new ArrayList<>();
+    List<T> newRecords = new ArrayList<>();
     for (ZonedDateTime current : iterator) {
       ZonedDateTime nextDt = current.plus(timeInterval);
-      Set<TimeStepValue<R>> toAverage = new HashSet<>();
-      Iterator<TimeStepValue<R>> copyIterator = copy.iterator();
+      Set<T> toAverage = new HashSet<>();
+      Iterator<T> copyIterator = copy.iterator();
       while (copyIterator.hasNext()) {
-        TimeStepValue<R> r = copyIterator.next();
+        T r = copyIterator.next();
         if ((current.isBefore(r.getZoneDateTime()) || current.isEqual(r.getZoneDateTime()))
           && r.getZoneDateTime().isBefore(nextDt)) {
           toAverage.add(r);
@@ -262,7 +239,7 @@ public final class DefaultTimeSeries<R> implements TimeSeries<TimeStepValue<R>> 
         }
       }
     }
-    TimeSeries<TimeStepValue<R>> result = new DefaultTimeSeries<>(timeInterval, newRecords);
+    TimeSeries<T> result = new CustomTimeStepTimeSeries<>(timeInterval, newRecords);
     return result;
   }
 
@@ -272,7 +249,7 @@ public final class DefaultTimeSeries<R> implements TimeSeries<TimeStepValue<R>> 
    */
   @Override
   public String toString() {
-    return "DefaultTimeSeries{" + "dateTimeRange=" + dateTimeRange + ", timeInterval=" + timeInterval + ", records=" + records + '}';
+    return "{" + "dateTimeRange=" + dateTimeRange + ", timeInterval=" + timeInterval + ", records=" + records + '}';
   }
 
 }
