@@ -228,10 +228,20 @@ public class RmBindings {
    */
   public static <T> void bind1To2(Property<T> obs1, Property<T> obs2) {
     obs2.addListener((obs, old, change) -> {
-      obs1.setValue(change);
+      try {
+        obs1.setValue(change);
+      } catch(Exception ex) {
+        throw new RuntimeException(
+          String.format("Attempting to set value '%s' to observable '%s'", change, obs1), ex);
+      }
     });
     obs1.addListener((obs, old, change) -> {
-      obs2.setValue(change);
+      try {
+        obs2.setValue(change);
+      } catch(Exception ex) {
+        throw new RuntimeException(
+          String.format("Attempting to set value '%s' to observable '%s'", change, obs1), ex);
+      }
     });
     obs1.setValue(obs2.getValue());
   }
@@ -338,7 +348,13 @@ public class RmBindings {
     } catch (Exception ex) {
       throw new RuntimeException("An error occurred while obtaining bound boolean value.", ex);
     }
-    obs1.setValue(r);
+    try {
+      obs1.setValue(r);
+    } catch(Exception ex) {
+      throw new RuntimeException(
+        String.format("Attempting to set value '%s' to observable '%s'", r, obs1), ex);
+    }
+    
   }
 
   /**

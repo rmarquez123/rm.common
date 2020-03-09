@@ -577,6 +577,11 @@ public class DbConnection implements Serializable {
     } catch (SQLException ex) {
       throw new RuntimeException(ex);
     }
+    try {
+      conn.close();
+    } catch (SQLException ex) {
+      throw new RuntimeException(ex);
+    }
     return result;
   }
 

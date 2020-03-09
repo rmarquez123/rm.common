@@ -53,6 +53,9 @@ public class DayOfYearRange implements Comparable<DayOfYearRange> {
     ZoneId zone = datetime.getZone();
     DateTimeRange dateTimerange = this.toDateRange(year, zone);
     boolean result = dateTimerange.contains(datetime); 
+    if (!result) {
+      System.out.println("what");
+    }
     return result;
   }
   
@@ -166,8 +169,10 @@ public class DayOfYearRange implements Comparable<DayOfYearRange> {
    * @return 
    */
   public  DateTimeRange toDateRange(int year, ZoneId zone) {
-    ZonedDateTime startDt = ZonedDateTime.of(year, this.startMonth().getValue(), this.startDayOfMonth(), 0, 0, 0, 0, zone);
-    ZonedDateTime endDt = ZonedDateTime.of(year, this.endMonth().getValue(), this.endDayOfMonth(), 0, 0, 0, 0, zone);
+    ZonedDateTime startDt = ZonedDateTime.of(year, this.startMonth().getValue(), 
+      this.startDayOfMonth(), 0, 0, 0, 0, zone);
+    ZonedDateTime endDt = ZonedDateTime.of(year, this.endMonth().getValue(), 
+      this.endDayOfMonth(), 0, 0, 0, 0, zone);
     DateTimeRange result = new DateTimeRange(startDt, endDt);
     return result;
   }

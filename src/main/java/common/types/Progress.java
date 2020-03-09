@@ -11,7 +11,7 @@ public class Progress {
     
   /**
    * 
-   * @param progress
+   * @param progress 
    * @param message 
    */
   public Progress(double progress, String message) {
