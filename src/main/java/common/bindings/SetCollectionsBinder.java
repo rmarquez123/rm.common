@@ -41,7 +41,14 @@ public class SetCollectionsBinder<T2, T1> {
       .collect(Collectors.toList());
     this.target.addAll(converted);
   }
-
+    
+  /**
+   * 
+   */
+  void unbind(){
+    this.reference.removeListener(this::onChanged);
+  }
+  
   /**
    *
    * @param change

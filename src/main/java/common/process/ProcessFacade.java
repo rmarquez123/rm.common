@@ -1,13 +1,17 @@
 package common.process;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.mutable.MutableObject;
 
 /**
  *
@@ -61,6 +65,40 @@ public class ProcessFacade {
 
   /**
    *
+   * @param onDone
+   */
+  public Process runOnNewThread(Runnable onDone) {
+    String[] args = this.statement.split("\\s+(?=([^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$)", -1);
+    ProcessBuilder pb = new ProcessBuilder(args);
+    pb.redirectErrorStream(true);
+    if (this.directory != null) {
+      pb.directory(this.directory);
+    }
+    MutableObject<Process> result = new MutableObject<>();
+
+    Process process;
+    try {
+      process = pb.start();
+    } catch (IOException ex) {
+      throw new RuntimeException(ex);
+    }
+    result.setValue(process);
+    new Thread(() -> {
+      try {
+        StreamGobbler ingobbler = StreamGobbler //
+          .create(process.getInputStream(), this.outputProcessor);
+        ingobbler.run();
+        int exitvalue = process.waitFor();
+        onDone.run();
+      } catch (Exception ex) {
+        throw new RuntimeException(ex);
+      }
+    }).start();
+    return result.getValue();
+  }
+
+  /**
+   *
    * @param process
    * @param utf8
    * @throws IOException
@@ -75,6 +113,7 @@ public class ProcessFacade {
       }
     } catch (Exception ex) {
       throw new RuntimeException(ex);
+
     }
   }
 
@@ -114,8 +153,58 @@ public class ProcessFacade {
       return instance;
     }
 
+    /**
+     *
+     */
     public void run() {
       this.build().run();
+    }
+
+    /**
+     *
+     * @param onDone
+     */
+    public Process runOnNewThread(Runnable onDone) {
+      return this.build().runOnNewThread(onDone);
+    }
+  }
+
+  static class StreamGobbler implements Runnable {
+
+    private final InputStream inputStream;
+    private final Consumer<String> consumeInputLine;
+    private BufferedReader reader;
+
+    public StreamGobbler(InputStream inputStream, Consumer<String> consumeInputLine) {
+      this.inputStream = inputStream;
+      this.consumeInputLine = consumeInputLine;
+    }
+
+    /**
+     *
+     * @param inputStream
+     * @param consumeInputLine
+     * @return
+     */
+    public static StreamGobbler create(InputStream inputStream, Consumer<String> consumeInputLine) {
+      return new StreamGobbler(inputStream, consumeInputLine);
+    }
+
+    public void close() {
+      try {
+        this.reader.close();
+      } catch (IOException ex) {
+        throw new RuntimeException(ex);
+      }
+    }
+
+    @Override
+    public void run() {
+      if (this.reader != null) {
+        throw new RuntimeException();
+      }
+      this.reader = new BufferedReader(new InputStreamReader(inputStream));
+      this.reader.lines().forEach(consumeInputLine);
     }
   }
 }

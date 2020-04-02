@@ -1,7 +1,7 @@
 package common.bindings;
 
-import java.util.concurrent.Callable;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ListProperty;
 import javafx.beans.property.Property;
@@ -30,7 +30,7 @@ public class RmBindings {
    */
   public static <T1, T2> void bindObject(Property<T1> target, ObservableSet<T1> bag,
     Property<T2> reference, MatchPredicate<T1, T2> predicate) {
-    Callable<T1> callable = () -> {
+    Supplier<T1> callable = () -> {
       T2 selected = reference.getValue();
       T1 r;
       if (selected != null) {
@@ -47,7 +47,7 @@ public class RmBindings {
     bag.addListener((SetChangeListener.Change<? extends T1> change) -> {
       try {
         if (target.getValue() == null) {
-          T1 a = callable.call();
+          T1 a = callable.get();
           target.setValue(a);
         }
       } catch (Exception ex) {
@@ -132,9 +132,22 @@ public class RmBindings {
    * @param target
    * @param reference
    */
-  public static <T> void bindCollections(ObservableSet<T> target, ObservableSet<T> reference) {
+  public static <T> SetCollectionsBinder<T, T> bindCollections(ObservableSet<T> target, ObservableSet<T> reference) {
     SetCollectionsBinder<T, T> binder = new SetCollectionsBinder<>(target, reference);
     binder.bind();
+    return binder;
+  }
+  
+  /**
+   * Binds the reference items to the target.
+   *
+   * @param target
+   * @param reference
+   */
+  public static <T> ListCollectionsBinder<T, T> bindCollections(ObservableList<T> target, ObservableList<T> reference) {
+    ListCollectionsBinder<T, T> binder = new ListCollectionsBinder<>(target, reference);
+    binder.bind();
+    return binder;
   }
   
   /**
@@ -284,39 +297,41 @@ public class RmBindings {
    *
    * @param <T>
    * @param obs1
-   * @param callable
+   * @param supplier
    */
-  public static void bindBoolean(Property<Boolean> obs1, Callable<Boolean> callable, Property<?>... observables) {
+  public static void bindBoolean(Property<Boolean> obs1, //
+    Supplier<Boolean> supplier, Property<?>... observables) {
     for (Property<?> observable : observables) {
       observable.addListener((obs, old, change) -> {
-        setValueFromCallable(callable, obs1);
+        setValueFromCallable(supplier, obs1);
       });
     }
-    setValueFromCallable(callable, obs1);
+    setValueFromCallable(supplier, obs1);
   }
 
   /**
    *
    * @param <T>
    * @param obs1
-   * @param callable
+   * @param supplier
    */
-  public static <T> void bindObject(Property<? super T> obs1, Callable<? extends T> callable, Property<?>... observables) {
+  public static <T> void bindObject(Property<? super T> obs1, // 
+    Supplier<? extends T> supplier, Property<?>... observables) {
     for (Property<?> observable : observables) {
       observable.addListener((obs, old, change) -> {
         try {
-          setObjectValueFromCallable(callable, obs1);
+          setObjectValueFromCallable(supplier, obs1);
         } catch (Exception ex) {
           String message = String.format("An error occurred setting value to observable from callable.  "
             + "Check args: {"
             + "observable : '%s'"
             + ", callable : '%s'"
-            + "}", obs1, callable);
+            + "}", obs1, supplier);
           throw new RuntimeException(message, ex);
         }
       });
     }
-    setObjectValueFromCallable(callable, obs1);
+    setObjectValueFromCallable(supplier, obs1);
   }
 
   /**
@@ -325,10 +340,10 @@ public class RmBindings {
    * @param obs1
    * @throws RuntimeException
    */
-  private static void setValueFromCallable(Callable<Boolean> obs2, Property<Boolean> obs1) {
+  private static void setValueFromCallable(Supplier<Boolean> obs2, Property<Boolean> obs1) {
     Boolean r;
     try {
-      r = obs2.call();
+      r = obs2.get();
     } catch (Exception ex) {
       throw new RuntimeException("An error occurred while obtaining bound boolean value.", ex);
     }
@@ -341,10 +356,10 @@ public class RmBindings {
    * @param obs1
    * @throws RuntimeException
    */
-  private static <T> void setObjectValueFromCallable(Callable<? extends T> obs2, Property<? super T> obs1) {
+  private static <T> void setObjectValueFromCallable(Supplier<? extends T> obs2, Property<? super T> obs1) {
     T r;
     try {
-      r = obs2.call();
+      r = obs2.get();
     } catch (Exception ex) {
       throw new RuntimeException("An error occurred while obtaining bound boolean value.", ex);
     }

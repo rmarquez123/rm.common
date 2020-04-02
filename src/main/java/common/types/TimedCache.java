@@ -61,6 +61,7 @@ public class TimedCache<T> {
    * 
    */
   private void updateValue() {
-    this.property.setValue(this.supplier.get());
+    T logs = this.supplier.get();
+    this.property.setValue(logs);
   }
 }
