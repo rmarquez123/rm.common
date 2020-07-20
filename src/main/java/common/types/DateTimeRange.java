@@ -19,6 +19,23 @@ import java.util.Objects;
  */
 public class DateTimeRange {
 
+  /**
+   * 
+   * @param datetimerange1
+   * @param datetimerange2
+   * @return 
+   */
+  public static DateTimeRange intersection(DateTimeRange datetimerange1, DateTimeRange datetimerange2) {
+    ZonedDateTime startDt1 = datetimerange1.startDt;
+    ZonedDateTime startDt2 = datetimerange2.startDt;
+    ZonedDateTime startDt = startDt1.isBefore(startDt2)? startDt2:startDt1;
+    ZonedDateTime endDt1 = datetimerange1.endDt;
+    ZonedDateTime endDt2 = datetimerange2.endDt;
+    ZonedDateTime endDt = endDt1.isAfter(endDt2)? endDt2:endDt1;
+    DateTimeRange result = new DateTimeRange(startDt, endDt); 
+    return result; 
+  }
+
   private final ZonedDateTime startDt;
   private final ZonedDateTime endDt;
   private ZoneId zoneId;

@@ -112,4 +112,5 @@ public interface TimeSeries<TS extends TimeStepValue<?>> extends Iterable<TS> {
   public TimeSeries<TS> average(TemporalAmount timeInterval, 
     Function<Pair<ZonedDateTime, Set<TS>>, TS> averaging);
   
+  
 }

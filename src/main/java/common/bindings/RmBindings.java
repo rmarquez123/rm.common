@@ -1,6 +1,8 @@
 package common.bindings;
 
+import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ListProperty;
@@ -137,7 +139,7 @@ public class RmBindings {
     binder.bind();
     return binder;
   }
-  
+
   /**
    * Binds the reference items to the target.
    *
@@ -149,7 +151,7 @@ public class RmBindings {
     binder.bind();
     return binder;
   }
-  
+
   /**
    * Binds the reference items to the target.
    *
@@ -243,7 +245,7 @@ public class RmBindings {
     obs2.addListener((obs, old, change) -> {
       try {
         obs1.setValue(change);
-      } catch(Exception ex) {
+      } catch (Exception ex) {
         throw new RuntimeException(
           String.format("Attempting to set value '%s' to observable '%s'", change, obs1), ex);
       }
@@ -251,14 +253,13 @@ public class RmBindings {
     obs1.addListener((obs, old, change) -> {
       try {
         obs2.setValue(change);
-      } catch(Exception ex) {
+      } catch (Exception ex) {
         throw new RuntimeException(
           String.format("Attempting to set value '%s' to observable '%s'", change, obs1), ex);
       }
     });
     obs1.setValue(obs2.getValue());
   }
-  
 
   /**
    *
@@ -307,6 +308,31 @@ public class RmBindings {
       });
     }
     setValueFromCallable(supplier, obs1);
+  }
+
+  /**
+   *
+   * @param obs1
+   * @param list
+   */
+  public static <T> void bindBoolean(Property<Boolean> obs1, //
+    ObservableList<? extends T> list, Predicate<? super T> predicate) {
+    list.addListener((ListChangeListener.Change<? extends T> c) -> {
+      if (c.next()) {
+        setBooleanFromListContains(c.getList(), predicate, obs1);
+      }
+    });
+    setBooleanFromListContains(list, predicate, obs1);
+  }
+
+  /**
+   *
+   */
+  private static <T> void setBooleanFromListContains(//
+    List<? extends T> list, Predicate<? super T> predicate, Property<Boolean> obs1) {
+    
+    boolean v = list.stream().anyMatch(predicate::test);
+    obs1.setValue(v);
   }
 
   /**
@@ -365,11 +391,11 @@ public class RmBindings {
     }
     try {
       obs1.setValue(r);
-    } catch(Exception ex) {
+    } catch (Exception ex) {
       throw new RuntimeException(
         String.format("Attempting to set value '%s' to observable '%s'", r, obs1), ex);
     }
-    
+
   }
 
   /**
