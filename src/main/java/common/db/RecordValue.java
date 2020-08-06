@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
@@ -16,9 +17,11 @@ import java.util.stream.Collectors;
 public class RecordValue {
 
   private final String idField;
-  private final Map<String, Object> values = new HashMap<>();
+  private final Map<String, Object> values = new TreeMap<>();
 
   /**
+   * If idField is a composite, then the name must end with pk or the object value must be
+   * a map.
    *
    * @param idField
    * @param values
@@ -29,20 +32,20 @@ public class RecordValue {
     this.idField = idField;
     this.values.putAll(values);
   }
-  
-  
+
   /**
-   * 
+   *
    * @param key
    * @param value
-   * @return 
+   * @return
    */
   public RecordValue set(String key, Object value) {
-    Map<String, Object> map = new HashMap<>(this.values); 
-    map.put(key, value); 
+    Map<String, Object> map = new HashMap<>(this.values);
+    map.put(key, value);
     RecordValue result = new RecordValue(this.idField, map);
     return result;
   }
+
   /**
    *
    * @return
@@ -61,8 +64,8 @@ public class RecordValue {
     Object result;
     if (this.values.containsKey(key)) {
       result = this.values.get(key);
-    }else if (this.getIdValue() instanceof Map) {
-      result = ((Map<String, Object>) this.getIdValue()).get(key); 
+    } else if (this.getIdValue() instanceof Map) {
+      result = ((Map<String, Object>) this.getIdValue()).get(key);
     } else {
       result = null;
     }
@@ -109,7 +112,7 @@ public class RecordValue {
       Map<String, Object> composite = (Map<String, Object>) this.get(this.idField);
       result = new HashSet<>();
       for (String string : composite.keySet()) {
-       result.add(string);
+        result.add(string);
       }
       result.addAll(this.keySetNoPk());
     } else {
@@ -125,10 +128,15 @@ public class RecordValue {
   public List<Object> valueSet() {
     return new ArrayList<>(this.values.values());
   }
-
+  
+  
+  /**
+   * 
+   * @return 
+   */
   public Set<String> keySetNoPk() {
     Set<String> keySet = new HashSet<>(this.values.keySet());
-    keySet.removeIf((e)->e.endsWith("pk"));
+    keySet.removeIf((e) -> e.endsWith("pk") || this.get(e) instanceof Map);
     return keySet;
   }
 
@@ -138,23 +146,21 @@ public class RecordValue {
    */
   public List<Object> valueSetNoPk() {
     List<Object> result = this.keySetNoPk().stream()
-      .map((k)->this.values.get(k))
-      .collect(Collectors.toList()); 
-    return result; 
+      .map((k) -> this.values.get(k))
+      .collect(Collectors.toList());
+    return result;
   }
-  
+
   /**
-   * 
+   *
    * @param keys
-   * @return 
+   * @return
    */
   public List<Object> valueSet(HashSet<String> keys) {
     List<Object> result = keys.stream()
-      .map((k)->this.values.get(k))
-      .collect(Collectors.toList()); 
-    return result; 
+      .map((k) -> this.values.get(k))
+      .collect(Collectors.toList());
+    return result;
   }
 
-
-  
 }

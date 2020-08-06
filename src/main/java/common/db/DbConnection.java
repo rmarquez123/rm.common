@@ -36,6 +36,7 @@ import org.apache.commons.lang3.mutable.MutableObject;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class DbConnection implements Serializable {
 
+  private static final int DEFAULT_FETCHSIZE = 0;
   private final String user;
   private final String password;
   private final String databaseName;
@@ -145,9 +146,19 @@ public class DbConnection implements Serializable {
    * @param consumer
    */
   public void executeQuery(String sql, Consumer<ResultSet> consumer) {
+    this.executeQuery(sql, DEFAULT_FETCHSIZE, consumer);
+  }
+
+  /**
+   *
+   * @param sql
+   * @param consumer
+   */
+  public void executeQuery(String sql, int fetchSize, Consumer<ResultSet> consumer) {
     Connection conn = this.getConnection();
     try {
-      PreparedStatement statement = conn.prepareStatement(sql);
+      PreparedStatement statement = conn.prepareCall(sql);
+      statement.setFetchSize(fetchSize);
       ResultSet resultSet = statement.executeQuery();
       while (resultSet.next()) {
         consumer.accept(resultSet);
@@ -202,8 +213,6 @@ public class DbConnection implements Serializable {
     }
     return true;
   }
-  
-  
 
   /**
    *
@@ -291,18 +300,18 @@ public class DbConnection implements Serializable {
 
   /**
    *
-   * @param text
+   * @param tablename
    * @return
    */
-  public Exception tableExists(String text) {
+  public Exception tableExists(String tablename) {
     MutableObject<Exception> result = new MutableObject<>(null);
     String schema;
     String table_name;
-    if (!text.contains(".")) {
+    if (!tablename.contains(".")) {
       schema = "public";
-      table_name = text;
+      table_name = tablename;
     } else {
-      String[] parts = text.split("\\.");
+      String[] parts = tablename.split("\\.");
       schema = parts[0];
       table_name = parts[1];
     }
@@ -316,7 +325,7 @@ public class DbConnection implements Serializable {
       try {
         boolean tableExists = r.getBoolean(1);
         if (!tableExists) {
-          result.setValue(new Exception("Table '" + text + "' does not exist."));
+          result.setValue(new Exception("Table '" + tablename + "' does not exist."));
         }
       } catch (Exception ex) {
         throw new RuntimeException(ex);
@@ -352,17 +361,33 @@ public class DbConnection implements Serializable {
     String columns_no_pk = String.join(separator, keySetNoPk);
     List<Object> values_no_pk = record.valueSet(keySetNoPk);
     String valuePlaceHoldersNoPk = StringUtils.repeat("?", separator, values_no_pk.size());
-    String sql = String.format("insert into %s \n(%s) \n values (%s) \n"
-      + " on conflict (%s) do update\n "
-      + " set (%s) = (%s) ",
-      new Object[]{table,
-        columns,
-        valuePlaceHolders,
-        String.join(",", pk),
-        columns_no_pk,
-        valuePlaceHoldersNoPk
-      }
-    );
+    
+    String sql;
+    if (valuePlaceHoldersNoPk.length() == 1) {
+      sql = String.format("insert into %s \n(%s) \n values (%s) \n"
+        + " on conflict (%s) do update\n "
+        + " set %s = ? ",
+        new Object[]{table,
+          columns,
+          valuePlaceHolders,
+          String.join(",", pk),
+          keySetNoPk.iterator().next(),
+          values_no_pk.get(0)
+        }  
+      );
+    } else {
+      sql = String.format("insert into %s \n(%s) \n values (%s) \n"
+        + " on conflict (%s) do update\n "
+        + " set (%s) = (%s) ",
+        new Object[]{table,
+          columns,
+          valuePlaceHolders,
+          String.join(",", pk),
+          columns_no_pk
+        }
+      );
+    }
+
     Connection conn = this.getConnection();
     int effectedRows;
     try {
@@ -414,21 +439,21 @@ public class DbConnection implements Serializable {
             .map((k) -> this.converters.convert(r.get(k)))
             .collect(Collectors.joining(","))
         ).collect(Collectors.joining(")\n" + separator + "("));
-      Set<String> keySetNoPk = records.get(0).keySetNoPk()
+      Set<String> keySetNoPk = records.get(0).keySetNoPk();
+      List<String> keySetNoPkWithExcludePrefix = keySetNoPk
         .stream()
         .map((e) -> "excluded." + e)
-        .collect(Collectors.toSet());
-
-      String columns_no_pk = String.join(separator, keySetNoPk);
+        .collect(Collectors.toList());
+      String columns_no_pk = String.join(separator, keySetNoPkWithExcludePrefix);
       String sql = String.format("insert into %s \n(%s) \n values (%s) \n"
         + " on conflict (%s) do update\n "
-        + " set %s = %s ",
+        + " set (%s) = (%s) ",
         new Object[]{
           table,
           columns,
           valuePlaceHolders,
           String.join(",", pk),
-          String.join(",", records.get(0).keySetNoPk()),
+          String.join(",", keySetNoPk),
           columns_no_pk
         });
       Connection conn = this.getConnection();
@@ -467,7 +492,6 @@ public class DbConnection implements Serializable {
           .toEpochMilli();
         Timestamp p = new Timestamp(epochMilli);
         statement.setTimestamp(columnIndex, p, cal);
-
       } else {
         statement.setObject(columnIndex, objectValue);
       }
@@ -632,7 +656,5 @@ public class DbConnection implements Serializable {
       Objects.requireNonNull(this.port, "port cannot be null");
       return new DbConnection(this.user, this.password, this.databaseName, this.url, this.port);
     }
-
   }
-
 }

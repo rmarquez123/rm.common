@@ -1,6 +1,7 @@
 package common.bindings;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -134,7 +135,8 @@ public class RmBindings {
    * @param target
    * @param reference
    */
-  public static <T> SetCollectionsBinder<T, T> bindCollections(ObservableSet<T> target, ObservableSet<T> reference) {
+  public static <T> SetCollectionsBinder<T, T> bindCollections( //
+    ObservableSet<T> target, ObservableSet<T> reference) {
     SetCollectionsBinder<T, T> binder = new SetCollectionsBinder<>(target, reference);
     binder.bind();
     return binder;
@@ -146,7 +148,8 @@ public class RmBindings {
    * @param target
    * @param reference
    */
-  public static <T> ListCollectionsBinder<T, T> bindCollections(ObservableList<T> target, ObservableList<T> reference) {
+  public static <T> ListCollectionsBinder<T, T> bindCollections( //
+    ObservableList<T> target, ObservableList<T> reference) {
     ListCollectionsBinder<T, T> binder = new ListCollectionsBinder<>(target, reference);
     binder.bind();
     return binder;
@@ -183,7 +186,8 @@ public class RmBindings {
   public static <T, R> void bindToListProperty(ListProperty<T> listProperty, //
     ObservableList<R> items, Function<T, R> converter) {
 
-    ListPropertyBinderWithConverter<T, R> binder = new ListPropertyBinderWithConverter<>(listProperty, items, converter);
+    ListPropertyBinderWithConverter<T, R> binder = // 
+      new ListPropertyBinderWithConverter<>(listProperty, items, converter);
     binder.bind();
   }
 
@@ -193,7 +197,8 @@ public class RmBindings {
    * @param property
    * @param targetvalue
    */
-  public static <T> void bindTrueIfPropertyValue(BooleanProperty selectedProperty, Property<T> property, T targetvalue) {
+  public static <T> void bindTrueIfPropertyValue( //
+    BooleanProperty selectedProperty, Property<T> property, T targetvalue) {
     property.addListener((obs, old, change) -> {
       selectedProperty.set(change == targetvalue);
     });
@@ -206,7 +211,8 @@ public class RmBindings {
    * @param value
    * @param selectedProperty
    */
-  public static <T> void bindPropertyValueIfTrue(Property<T> property, T value, BooleanProperty selectedProperty) {
+  public static <T> void bindPropertyValueIfTrue( //
+    Property<T> property, T value, BooleanProperty selectedProperty) {
     selectedProperty.addListener((obs, old, change) -> {
       if (change) {
         property.setValue(value);
@@ -259,6 +265,41 @@ public class RmBindings {
       }
     });
     obs1.setValue(obs2.getValue());
+  }
+  
+  
+  /**
+   * Applies a 2-way binding between obs1 and obs2 with obs1 initialized to the value of
+   * obs2.
+   * 
+   * @param <T1>
+   * @param <T2>
+   * @param obs1
+   * @param obs2
+   * @param converter 
+   */
+  public static <T1, T2> void bind1To2(Property<T1> obs1, Property<T2> obs2, //
+    ObjectConverter<T1, T2> converter) {
+    Objects.requireNonNull(obs1, "obs1 cannot be null"); 
+    Objects.requireNonNull(obs2, "obs2 cannot be null");
+    Objects.requireNonNull(converter, "converter cannot be null");
+    obs2.addListener((obs, old, change) -> {
+      try {
+        obs1.setValue(converter.fromObject(change));
+      } catch (Exception ex) {
+        throw new RuntimeException(
+          String.format("Attempting to set value '%s' to observable '%s'", change, obs1), ex);
+      }
+    });
+    obs1.addListener((obs, old, change) -> {
+      try {
+        obs2.setValue(converter.toObject(change));
+      } catch (Exception ex) {
+        throw new RuntimeException(
+          String.format("Attempting to set value '%s' to observable '%s'", change, obs1), ex);
+      }
+    });
+    obs1.setValue(converter.fromObject(obs2.getValue()));
   }
 
   /**
@@ -382,7 +423,8 @@ public class RmBindings {
    * @param obs1
    * @throws RuntimeException
    */
-  private static <T> void setObjectValueFromCallable(Supplier<? extends T> obs2, Property<? super T> obs1) {
+  private static <T> void setObjectValueFromCallable(//
+    Supplier<? extends T> obs2, Property<? super T> obs1) {
     T r;
     try {
       r = obs2.get();
@@ -503,7 +545,8 @@ public class RmBindings {
    * @param textProperty
    * @param observables
    */
-  public static void bindClearIfAnyChange(StringProperty textProperty,
+  public static void bindClearIfAnyChange( //
+    StringProperty textProperty,
     Property<? extends Object>... observables) {
     for (Property<? extends Object> observable : observables) {
       observable.addListener((obs, old, change) -> {
@@ -515,7 +558,8 @@ public class RmBindings {
   /**
    *
    */
-  public static void bindActionOnAnyChange(Runnable runnable, ReadOnlyProperty<? extends Object>... observables) {
+  public static void bindActionOnAnyChange(//
+    Runnable runnable, ReadOnlyProperty<? extends Object>... observables) {
     for (ReadOnlyProperty<? extends Object> observable : observables) {
       observable.addListener((obs, old, change) -> {
         runnable.run();
@@ -526,7 +570,8 @@ public class RmBindings {
   /**
    *
    */
-  public static void bindActionOnAnyChange(Runnable runnable, Property<? extends Object>... observables) {
+  public static void bindActionOnAnyChange(//
+    Runnable runnable, Property<? extends Object>... observables) {
     for (ReadOnlyProperty<? extends Object> observable : observables) {
       observable.addListener((obs, old, change) -> {
         runnable.run();
