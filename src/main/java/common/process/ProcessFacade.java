@@ -6,8 +6,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.apache.commons.io.IOUtils;
@@ -22,14 +27,19 @@ public class ProcessFacade {
   private final String statement;
   private final Consumer<String> outputProcessor;
   private File directory = null;
+  private final Map<String, String> envvars;
+  private final Set<File> paths;
 
   /**
    *
    * @param statement
    */
-  private ProcessFacade(String statement, Consumer<String> outputProcessor) {
+  private ProcessFacade(String statement, // 
+    Consumer<String> outputProcessor, Map<String, String> envvars, Set<File> paths) {
     this.statement = statement;
     this.outputProcessor = outputProcessor;
+    this.envvars = envvars;
+    this.paths = paths;
   }
 
   /**
@@ -44,19 +54,23 @@ public class ProcessFacade {
    * Runs on the same thread.
    */
   public void run() {
-    String[] args = this.statement.split("\\s+(?=([^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$)", -1);
-    ProcessBuilder pb = new ProcessBuilder(args);
-    pb.redirectErrorStream(true);
-    if (this.directory != null) {
-      pb.directory(this.directory);
-    }
-    List<String> outputLines;
+    ProcessBuilder pb = this.createProcessBuilder(); 
+    
+    List<String> outputLines = new ArrayList<>();
     try {
       Process process = pb.start();
       process.waitFor(5, TimeUnit.SECONDS);
       Charset utf8 = Charset.forName("UTF-8");
       this.throwExceptionIfAnyErrors(process, utf8);
-      outputLines = IOUtils.readLines(process.getInputStream(), utf8);
+      try (BufferedReader reader // 
+        = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          outputLines.add(line); 
+        }
+      } catch(Exception ex) {
+        throw new RuntimeException(ex);
+      }
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
@@ -68,14 +82,8 @@ public class ProcessFacade {
    * @param onDone
    */
   public Process runOnNewThread(Runnable onDone) {
-    String[] args = this.statement.split("\\s+(?=([^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$)", -1);
-    ProcessBuilder pb = new ProcessBuilder(args);
-    pb.redirectErrorStream(true);
-    if (this.directory != null) {
-      pb.directory(this.directory);
-    }
+    ProcessBuilder pb = this.createProcessBuilder();
     MutableObject<Process> result = new MutableObject<>();
-
     Process process;
     try {
       process = pb.start();
@@ -95,6 +103,26 @@ public class ProcessFacade {
       }
     }).start();
     return result.getValue();
+  }
+  
+  /**
+   * 
+   * @return 
+   */
+  private ProcessBuilder createProcessBuilder() {
+    String[] args = this.statement //
+      .split("\\s+(?=([^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$)", -1);
+    ProcessBuilder pb = new ProcessBuilder(args);
+    pb.redirectErrorStream(true);
+    pb.environment().putAll(this.envvars);
+    if (this.directory != null) {
+      pb.directory(this.directory);
+    }
+    String oldpath = pb.environment().get("PATH");
+    StringBuilder newpath = new StringBuilder(oldpath);
+    this.paths.forEach(f -> newpath.append(";").append(f.getAbsolutePath()));
+    pb.environment().put("PATH", newpath.toString());
+    return pb;
   }
 
   /**
@@ -125,6 +153,8 @@ public class ProcessFacade {
     private String statement;
     private Consumer<String> outputProcessor;
     private File rundirectory;
+    private Map<String, String> envars = new HashMap<>();
+    private Set<File> paths = new HashSet<>();
 
     public Builder withStatement(String statement) {
       this.statement = statement;
@@ -140,15 +170,30 @@ public class ProcessFacade {
       this.rundirectory = parent;
       return this;
     }
+    
+    public Builder withEnvironmentVars(Map<String, String> envvars) {
+      this.envars = envvars;
+      return this;
+    }
+    
+    /**
+     * 
+     * @param file
+     * @return 
+     */
+    public Builder includePath(File file) {
+      this.paths.add(file); 
+      return this;
+    }
 
     /**
      *
      * @return
      */
     public ProcessFacade build() {
-      Objects.requireNonNull(this.statement);
-      Objects.requireNonNull(this.outputProcessor);
-      ProcessFacade instance = new ProcessFacade(statement, outputProcessor);
+      Objects.requireNonNull(this.statement, "Executable statement cannot be null");
+      Objects.requireNonNull(this.outputProcessor, "Output processor cannot  be null");
+      ProcessFacade instance = new ProcessFacade(statement, outputProcessor, envars, paths);
       instance.directory(this.rundirectory);
       return instance;
     }
@@ -157,7 +202,25 @@ public class ProcessFacade {
      *
      */
     public void run() {
-      this.build().run();
+      MutableObject<Boolean> done= new MutableObject<>(false);
+      this.build().runOnNewThread(()->{
+        done.setValue(true);
+      });
+      this.stall(done);
+    }
+    
+    /**
+     * 
+     * @param done 
+     */
+    private void stall(MutableObject<Boolean> done) {
+      try {
+        while (!done.getValue()) {
+          Thread.sleep(10);
+        }
+      } catch (InterruptedException ex) {
+        throw new RuntimeException(ex);
+      }
     }
 
     /**

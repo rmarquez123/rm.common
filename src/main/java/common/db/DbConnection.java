@@ -1,5 +1,7 @@
 package common.db;
 
+import common.process.ProcessFacade;
+import java.io.File;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -11,6 +13,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -159,6 +162,7 @@ public class DbConnection implements Serializable {
     try {
       PreparedStatement statement = conn.prepareCall(sql);
       statement.setFetchSize(fetchSize);
+      conn.setAutoCommit(false);
       ResultSet resultSet = statement.executeQuery();
       while (resultSet.next()) {
         consumer.accept(resultSet);
@@ -361,7 +365,7 @@ public class DbConnection implements Serializable {
     String columns_no_pk = String.join(separator, keySetNoPk);
     List<Object> values_no_pk = record.valueSet(keySetNoPk);
     String valuePlaceHoldersNoPk = StringUtils.repeat("?", separator, values_no_pk.size());
-    
+
     String sql;
     if (valuePlaceHoldersNoPk.length() == 1) {
       sql = String.format("insert into %s \n(%s) \n values (%s) \n"
@@ -373,7 +377,7 @@ public class DbConnection implements Serializable {
           String.join(",", pk),
           keySetNoPk.iterator().next(),
           values_no_pk.get(0)
-        }  
+        }
       );
     } else {
       sql = String.format("insert into %s \n(%s) \n values (%s) \n"
@@ -607,6 +611,87 @@ public class DbConnection implements Serializable {
       throw new RuntimeException(ex);
     }
     return result;
+  }
+
+  /**
+   *
+   * @param schemaSqlFile
+   */
+  public void runSqlFile(File dbBinDir, File schemaSqlFile, Consumer<String> outputConsumer) {
+    String statement // 
+      = String.format("cmd.exe /c %s\\psql.exe -h %s -d %s -U %s -p %d -a -q -f \"%s\"",//
+      dbBinDir, //
+      this.getUrl(), this.getDatabaseName(), // 
+      this.getUser(), this.getPort(), schemaSqlFile.getAbsolutePath());
+    String _password = this.getPassword();
+    HashMap<String, String> hashMap = new HashMap<>();
+    hashMap.put("PGPASSWORD", _password);
+    new ProcessFacade.Builder()
+      .withStatement(statement)
+      .withEnvironmentVars(hashMap)
+      .withOutputProcessor(outputConsumer)
+      .run();
+  }
+  
+  /**
+   * 
+   * @param postGresBin
+   * @param dataFolder 
+   */
+  public void startDb(File postGresBin, File dataFolder) {
+    this.startDb(postGresBin, dataFolder, System.out::println);
+  }
+
+  /**
+   *
+   */
+  public void startDb(File postGresBin, File dataFolder, Consumer<String> consumer) {
+    String statement // 
+      = String.format("%s\\pg_ctl.exe restart -D \"%s\" -o \"--port=%d\" ", // 
+        postGresBin, dataFolder, this.port);
+
+    MutableObject<Boolean> done = new MutableObject<>(false);
+    new ProcessFacade.Builder()
+      .withStatement(statement)
+      .withOutputProcessor((s) -> {
+        if (s.contains("server started")) {
+          done.setValue(Boolean.TRUE);
+        }
+        if (s.contains("could not start server")) {
+          done.setValue(Boolean.TRUE);
+        }
+        consumer.accept(s);
+      })
+      .runOnNewThread(() -> {
+        done.setValue(Boolean.TRUE);
+      });
+    while (!done.getValue()) {
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException ex) {
+        throw new RuntimeException(ex);
+      }
+    }
+  }
+
+  /**
+   *
+   */
+  public void stopDb(File postGresBin, File dataFolder) {
+    this.stopDb(postGresBin, dataFolder, System.out::println);
+  }
+  
+  /**
+   *
+   */
+  public void stopDb(File postGresBin, File dataFolder, Consumer<String> consumer) {
+    String statement // 
+      = String.format("%s\\pg_ctl.exe stop -D \"%s\"", //
+        postGresBin, dataFolder);
+    new ProcessFacade.Builder()
+      .withStatement(statement)
+      .withOutputProcessor(consumer)
+      .run();
   }
 
   /**
