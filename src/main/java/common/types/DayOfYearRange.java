@@ -52,10 +52,7 @@ public class DayOfYearRange implements Comparable<DayOfYearRange> {
     int year = datetime.getYear();
     ZoneId zone = datetime.getZone();
     DateTimeRange dateTimerange = this.toDateRange(year, zone);
-    boolean result = dateTimerange.contains(datetime); 
-    if (!result) {
-      System.out.println("what");
-    }
+    boolean result = dateTimerange.contains(datetime);
     return result;
   }
   
@@ -63,10 +60,10 @@ public class DayOfYearRange implements Comparable<DayOfYearRange> {
    *
    * @return
    */
-  public static DayOfYearRange calendarYear(ZonedDateTime zonedDateTime) {
+  public static DayOfYearRange calendarYear(ZonedDateTime referenceDate) {
     DayOfYear startDoy = DayOfYear.ofMonthAndDay(Month.JANUARY, 1);
     DayOfYear endDoy = DayOfYear.ofMonthAndDay(Month.DECEMBER, 31);
-    DayOfYearRange result = new DayOfYearRange(startDoy, endDoy, zonedDateTime);
+    DayOfYearRange result = new DayOfYearRange(startDoy, endDoy, referenceDate);
     return result;
   }
 
