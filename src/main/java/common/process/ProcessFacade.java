@@ -119,7 +119,7 @@ public class ProcessFacade {
       pb.directory(this.directory);
     }
     String oldpath = pb.environment().get("PATH");
-    StringBuilder newpath = new StringBuilder(oldpath);
+    StringBuilder newpath = new StringBuilder(oldpath == null ? "": oldpath);
     this.paths.forEach(f -> newpath.append(";").append(f.getAbsolutePath()));
     pb.environment().put("PATH", newpath.toString());
     return pb;
