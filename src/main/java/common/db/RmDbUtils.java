@@ -8,6 +8,9 @@ import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import javax.measure.Measure;
+import javax.measure.quantity.Quantity;
+import javax.measure.unit.Unit;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
@@ -20,6 +23,14 @@ public class RmDbUtils {
 
   private static Map<String, EntityManagerFactory> EMFS = new HashMap<>();
 
+  
+  
+  /**
+   * 
+   */
+  private RmDbUtils() {
+  }
+  
   /**
    * Creates a cached entity manager factory based on the persistence unit name. This is
    * analogous to eager initialization of an entity manger.
@@ -75,7 +86,94 @@ public class RmDbUtils {
       .atZone(zone);
     return dt;
   }
-
-  private RmDbUtils() {
+  
+  /**
+   * 
+   * @param <E>
+   * @param rs
+   * @param col
+   * @param unit
+   * @return 
+   */
+  public static <E extends Quantity> Measure<E> doubleValue(ResultSet rs, String col, Unit<E> unit) {
+    double aDouble;
+    try {
+      aDouble = rs.getDouble(col);
+    } catch (SQLException ex) {
+      throw new RuntimeException(ex); 
+    }
+    Measure<E> result = Measure.valueOf(aDouble, unit);
+    return result;
   }
+  
+  /**
+   * 
+   * @param <E>
+   * @param rs
+   * @param col
+   * @param unit
+   * @return 
+   */
+  public static double doubleValue(ResultSet rs, String col) {
+    double aDouble;
+    try {
+      aDouble = rs.getDouble(col);
+    } catch (SQLException ex) {
+      throw new RuntimeException(ex); 
+    }
+    return aDouble;
+  }
+  
+  /**
+   * 
+   * @param rs
+   * @param col
+   * @return 
+   */
+  public static int intValue(ResultSet rs, String col) {
+    int result;
+    try {
+      result = rs.getInt(col);
+    } catch (SQLException ex) {
+      throw new RuntimeException(ex); 
+    }
+    return result;
+  }
+  
+  /**
+   * 
+   * @param <E>
+   * @param rs
+   * @param col
+   * @param unit
+   * @return 
+   */
+  public static <E extends Quantity> Measure<E> intValue(ResultSet rs, String col, Unit<E> unit) {
+    int aDouble;
+    try {
+      aDouble = rs.getInt(col);
+    } catch (SQLException ex) {
+      throw new RuntimeException(ex); 
+    }
+    Measure<E> result = Measure.valueOf(aDouble, unit);
+    return result;
+  }
+  
+  public static String stringValue(ResultSet rs, String col) {
+    try {
+      return rs.getString(col);
+    } catch (SQLException ex) {
+      throw new RuntimeException(ex); 
+    }
+  }
+  
+  public static ZoneId zoneIdValue(ResultSet rs, String col) {
+    try {
+      return ZoneId.of(rs.getString(col));
+    } catch (SQLException ex) {
+      throw new RuntimeException(ex); 
+    }
+  }
+
+
 }

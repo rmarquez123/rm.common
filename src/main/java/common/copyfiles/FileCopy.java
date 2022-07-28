@@ -36,24 +36,23 @@ public final class FileCopy {
   public void copyFolder(Path src, Path dest) throws IOException {
     this.progress.setValue(new Progress(0, 
       String.format("getting files count for source folder '%s' ....", src)));
-    MutableObject<Integer> counter = this.getFileCount(src);
+    int total = this.getFileCount(src);
     this.progress.setValue(null);
     try (Stream<Path> stream = Files.walk(src)) {
-      int total = counter.getValue();
-      counter.setValue(0);
+      MutableObject<Integer> counter = new MutableObject<>(0);
       stream.forEach(source -> {
-        copy(source, dest.resolve(src.relativize(source)));
+        this.copy(source, dest.resolve(src.relativize(source)));
         this.updateProgress(total, counter, source);
       });
     }
   }
-
+  
   /**
    *
    * @param src
    * @return
    */
-  private MutableObject<Integer> getFileCount(Path src) {
+  private int getFileCount(Path src) {
     MutableObject<Integer> counter = new MutableObject<>(0);
     try (Stream<Path> stream = Files.walk(src)) {
       stream.forEach(source -> {
@@ -62,7 +61,7 @@ public final class FileCopy {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    return counter;
+    return counter.getValue();
   }
 
   /**
@@ -71,7 +70,8 @@ public final class FileCopy {
    * @param counter
    * @param source
    */
-  private void updateProgress(int total, MutableObject<Integer> counter, Path source) {
+  private synchronized void updateProgress( //
+    int total, MutableObject<Integer> counter, Path source) {
     if (source.toFile().isFile()) {
       counter.setValue(counter.getValue() + 1);
       double percent = counter.getValue() / (double) total * 100;
@@ -116,7 +116,11 @@ public final class FileCopy {
    */
   private void doCopy(Path source, Path dest) {
     try {
-      Files.copy(source, dest, StandardCopyOption.REPLACE_EXISTING);
+      if (dest.toFile().exists()) {
+        Files.copy(source, dest, StandardCopyOption.REPLACE_EXISTING);
+      } else {
+        Files.copy(source, dest, StandardCopyOption.COPY_ATTRIBUTES);
+      }
     } catch (Exception e) {
       throw new RuntimeException(e.getMessage(), e);
     }

@@ -186,7 +186,8 @@ public class RmBindings {
   public static <T, R> void bindToListProperty(ListProperty<T> listProperty, //
     ObservableList<R> items, Function<T, R> converter) {
 
-    ListPropertyBinderWithConverter<T, R> binder = // 
+    ListPropertyBinderWithConverter<T, R> binder
+      = // 
       new ListPropertyBinderWithConverter<>(listProperty, items, converter);
     binder.bind();
   }
@@ -266,21 +267,20 @@ public class RmBindings {
     });
     obs1.setValue(obs2.getValue());
   }
-  
-  
+
   /**
    * Applies a 2-way binding between obs1 and obs2 with obs1 initialized to the value of
    * obs2.
-   * 
+   *
    * @param <T1>
    * @param <T2>
    * @param obs1
    * @param obs2
-   * @param converter 
+   * @param converter
    */
   public static <T1, T2> void bind1To2(Property<T1> obs1, Property<T2> obs2, //
     ObjectConverter<T1, T2> converter) {
-    Objects.requireNonNull(obs1, "obs1 cannot be null"); 
+    Objects.requireNonNull(obs1, "obs1 cannot be null");
     Objects.requireNonNull(obs2, "obs2 cannot be null");
     Objects.requireNonNull(converter, "converter cannot be null");
     obs2.addListener((obs, old, change) -> {
@@ -371,7 +371,7 @@ public class RmBindings {
    */
   private static <T> void setBooleanFromListContains(//
     List<? extends T> list, Predicate<? super T> predicate, Property<Boolean> obs1) {
-    
+
     boolean v = list.stream().anyMatch(predicate::test);
     obs1.setValue(v);
   }
@@ -566,6 +566,21 @@ public class RmBindings {
       });
     }
   }
+
+  /**
+   *
+   */
+  public static void bindActionOnAnyChange(//
+    Runnable runnable, ObservableList<? extends Object>... observables) {
+    for (ObservableList<? extends Object> observable : observables) {
+      observable.addListener((ListChangeListener.Change<? extends Object> c) -> {
+        while (c.next()) {
+          runnable.run();
+        }
+      });
+    }
+  }
+  
 
   /**
    *

@@ -129,6 +129,23 @@ public class DbConnection implements Serializable {
     }
     return effectedRows;
   }
+  
+  /**
+   * 
+   * @param <T>
+   * @param sql
+   * @param mapper
+   * @return 
+   */
+  public <T> T executeSingleResultQuery(String sql, Function<ResultSet,T> mapper) {
+    List<T> list = this.executeQuery(sql, mapper); 
+    if (list.size() > 0) {
+      throw new RuntimeException("Query returned more than 1 result."); 
+    }
+    T result = list.stream().findFirst().orElse(null);
+    return result;
+  }
+
 
   /**
    *
@@ -449,23 +466,34 @@ public class DbConnection implements Serializable {
         .map((e) -> "excluded." + e)
         .collect(Collectors.toList());
       String columns_no_pk = String.join(separator, keySetNoPkWithExcludePrefix);
+      
       String sql = String.format("insert into %s \n(%s) \n values (%s) \n"
-        + " on conflict (%s) do update\n "
-        + " set (%s) = (%s) ",
+        + " on conflict (%s) do update\n ",
         new Object[]{
           table,
           columns,
           valuePlaceHolders,
-          String.join(",", pk),
-          String.join(",", keySetNoPk),
-          columns_no_pk
+          String.join(",", pk)
         });
+      String set;
+      if (keySetNoPkWithExcludePrefix.size() < 2) {
+        set = String.format(" set %s = %s", 
+          String.join(",", keySetNoPk),
+          columns_no_pk);
+      } else {
+        set = String.format(" set (%s) = (%s)", 
+          String.join(",", keySetNoPk),
+          columns_no_pk);
+      }
+      sql = sql + "\n " + set;
       Connection conn = this.getConnection();
       try {
         PreparedStatement statement = conn.prepareStatement(sql);
         effectedRows = statement.executeUpdate();
       } catch (SQLException ex) {
-        throw new RuntimeException(ex);
+        throw new RuntimeException(
+          String.format("Error running statement: '%s'", sql), // 
+          ex);
       } finally {
         try {
           conn.close();
@@ -590,7 +618,7 @@ public class DbConnection implements Serializable {
       i++;
       PreparedStatement statement;
       try {
-        statement = conn.prepareStatement(statementText);
+        statement = conn.prepareStatement(statementText.replace("NaN", "null"));
       } catch (SQLException ex) {
         throw new RuntimeException(ex);
       }
@@ -736,7 +764,7 @@ public class DbConnection implements Serializable {
     public DbConnection createDbConnection() {
       Objects.requireNonNull(this.user, "user cannot be null");
       Objects.requireNonNull(this.password, "password cannot be null");
-      Objects.requireNonNull(this.databaseName, "database cannot be null");
+      Objects.requireNonNull(this.databaseName, "databaseName cannot be null");
       Objects.requireNonNull(this.url, "url cannot be null");
       Objects.requireNonNull(this.port, "port cannot be null");
       return new DbConnection(this.user, this.password, this.databaseName, this.url, this.port);

@@ -13,7 +13,6 @@ import javafx.beans.property.SimpleObjectProperty;
  * @author Ricardo Marquez
  */
 public class TimedCache<T> {
-
   private final Timer timer;
   private final Supplier<T> supplier;
   private final Property<T> property = new SimpleObjectProperty<>();
@@ -55,6 +54,13 @@ public class TimedCache<T> {
    */
   public void cancel() {
     this.timer.cancel();
+  }
+  
+  /**
+   * 
+   */
+  public void forceUpdate() {
+    this.updateValue();
   }
   
   /**

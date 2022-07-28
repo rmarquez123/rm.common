@@ -80,8 +80,12 @@ public class DateTimeRange {
   public static DateTimeRange of(ZoneId zoneId, String pattern, String startDtText, String endDateText)
     throws ParseException {
     DateFormat format = new SimpleDateFormat(pattern);
-    ZonedDateTime startDt = ZonedDateTime.ofInstant(format.parse(startDtText).toInstant(), zoneId);
-    ZonedDateTime endDt = ZonedDateTime.ofInstant(format.parse(endDateText).toInstant(), zoneId);
+    ZonedDateTime startDt = ZonedDateTime
+      .ofInstant(format.parse(startDtText).toInstant(), ZoneId.systemDefault()).toOffsetDateTime()
+      .atZoneSimilarLocal(zoneId);
+    ZonedDateTime endDt = ZonedDateTime
+      .ofInstant(format.parse(endDateText).toInstant(), ZoneId.systemDefault()).toOffsetDateTime()
+      .atZoneSimilarLocal(zoneId);
     DateTimeRange result = new DateTimeRange(startDt, endDt);
     return result;
   }
@@ -117,6 +121,7 @@ public class DateTimeRange {
    * @return
    */
   public ZonedDateTime getStartDate() {
+    
     return this.startDt;
   }
 
@@ -217,6 +222,18 @@ public class DateTimeRange {
   @Override
   public String toString() {
     return "DateTimeRange{" + "startDt=" + startDt + ", endDt=" + endDt + '}';
+  }
+  
+  /**
+   * 
+   * @param of
+   * @return 
+   */
+  public DateTimeRange toZoneId(ZoneId of) {
+    ZonedDateTime s = this.startDt.toOffsetDateTime().atZoneSameInstant(of);
+    ZonedDateTime e = this.endDt.toOffsetDateTime().atZoneSameInstant(of);
+    DateTimeRange result = new DateTimeRange(s, e);
+    return result;
   }
 
 
