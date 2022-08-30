@@ -580,7 +580,20 @@ public class RmBindings {
       });
     }
   }
-  
+
+  /**
+   *
+   */
+  public static void bindActionOnAnyPropertyChange(//
+    Runnable runnable, ObservableList<? extends Object>... observables) {
+    for (ObservableList<? extends Object> observable : observables) {
+      observable.addListener((ListChangeListener.Change<? extends Object> c) -> {
+        while (c.next()) {
+          runnable.run();
+        }
+      });
+    }
+  }
 
   /**
    *

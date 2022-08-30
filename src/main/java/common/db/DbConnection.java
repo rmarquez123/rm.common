@@ -139,7 +139,7 @@ public class DbConnection implements Serializable {
    */
   public <T> T executeSingleResultQuery(String sql, Function<ResultSet,T> mapper) {
     List<T> list = this.executeQuery(sql, mapper); 
-    if (list.size() > 0) {
+    if (list.size() > 1) {
       throw new RuntimeException("Query returned more than 1 result."); 
     }
     T result = list.stream().findFirst().orElse(null);
