@@ -1,5 +1,6 @@
 package common;
 
+import java.io.File;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -97,5 +98,19 @@ public class RmObjects {
    */
   public static void println(String s_v, Object... args) {
     System.out.println(String.format(s_v, args));
+  }
+
+  /**
+   * 
+   * @param filename
+   * @return 
+   */
+  public static File fileExists(String filename) {
+    File result = new File(filename);
+    if (!result.exists()) {
+      RmExceptions.throwException("file '%s' does not exist.", filename);
+    }
+    return result;
+    
   }
 }

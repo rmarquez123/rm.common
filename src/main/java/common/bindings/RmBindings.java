@@ -584,6 +584,20 @@ public class RmBindings {
   /**
    *
    */
+  public static void bindActionOnAnyChange(//
+    Runnable runnable, ObservableSet<? extends Object>... observables) {
+    for (ObservableSet<? extends Object> observable : observables) {
+      observable.addListener((SetChangeListener.Change<? extends Object> c) -> {
+        if (c.wasAdded() || c.wasRemoved()) {
+          runnable.run();
+        }
+      });
+    }
+  }
+
+  /**
+   *
+   */
   public static void bindActionOnAnyPropertyChange(//
     Runnable runnable, ObservableList<? extends Object>... observables) {
     for (ObservableList<? extends Object> observable : observables) {

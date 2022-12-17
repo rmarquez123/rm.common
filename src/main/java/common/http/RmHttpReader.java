@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -137,6 +138,22 @@ public class RmHttpReader {
         result = new JSONObject(string.toString());
       } catch (JSONException ex) {
         throw new RuntimeException(ex);
+      }
+      return result;
+    }
+    
+    /**
+     *
+     * @return
+     */
+    public JSONArray readJsonArray() {
+      StringBuilder string = new StringBuilder();
+      this.read(s -> string.append(s).append("\n"));
+      JSONArray result;
+      try {
+        result = new JSONArray(string.toString());
+      } catch (JSONException ex) {  
+        throw new RuntimeException(ex);  
       }
       return result;
     }

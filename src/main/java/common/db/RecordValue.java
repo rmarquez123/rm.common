@@ -30,6 +30,9 @@ public class RecordValue {
     Objects.requireNonNull(idField, "Id field cannot be null");
     Objects.requireNonNull(values, "Values cannot be null");
     this.idField = idField;
+    if (!values.keySet().contains(idField)) {
+      throw new RuntimeException("Invalid idField. Not found in map keys.");
+    }
     this.values.putAll(values);
   }
 

@@ -119,6 +119,9 @@ public final class FileCopy {
       if (dest.toFile().exists()) {
         Files.copy(source, dest, StandardCopyOption.REPLACE_EXISTING);
       } else {
+        if (!dest.getParent().toFile().exists()) {
+          dest.getParent().toFile().mkdirs();
+        }
         Files.copy(source, dest, StandardCopyOption.COPY_ATTRIBUTES);
       }
     } catch (Exception e) {
