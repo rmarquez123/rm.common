@@ -1,5 +1,10 @@
 package common.db;
 
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.PrecisionModel;
+import com.vividsolutions.jts.io.WKBReader;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -97,7 +102,7 @@ public class RmDbUtils {
    * @return
    */
   public static <E extends Quantity> Measure<E> // 
-  doubleValue(ResultSet rs, String col, Unit<E> unit) {
+    doubleValue(ResultSet rs, String col, Unit<E> unit) {
     double aDouble;
     try {
       aDouble = rs.getDouble(col);
@@ -105,6 +110,21 @@ public class RmDbUtils {
       throw new RuntimeException(ex);
     }
     Measure<E> result = Measure.valueOf(aDouble, unit);
+    return result;
+  }
+
+  /**
+   *
+   * @param raster_id
+   * @return
+   */
+  public static long longValue(ResultSet rs, String col) {
+    long result;
+    try {
+      result = rs.getLong(col);
+    } catch (SQLException ex) {
+      throw new RuntimeException(ex);
+    }
     return result;
   }
 
@@ -124,6 +144,27 @@ public class RmDbUtils {
       throw new RuntimeException(ex);
     }
     return aDouble;
+  }
+  
+  /**
+   *
+   * @param <E>
+   * @param rs
+   * @param col
+   * @param unit
+   * @return
+   */
+  public static Point pointValue(ResultSet rs, String col, int srid) {
+    Point result;
+    try {
+      GeometryFactory factory = new GeometryFactory(new PrecisionModel(PrecisionModel.FLOATING), srid); 
+      WKBReader reader = new WKBReader(factory);
+      Geometry geometry = reader.read(rs.getBytes(col));
+      result = (Point) geometry;
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
+    return result;
   }
 
   /**
@@ -151,7 +192,7 @@ public class RmDbUtils {
    * @return
    */
   public static <E extends Quantity> Measure<E> // 
-  intValue(ResultSet rs, String col, Unit<E> unit) {
+    intValue(ResultSet rs, String col, Unit<E> unit) {
     int aDouble;
     try {
       aDouble = rs.getInt(col);

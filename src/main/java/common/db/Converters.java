@@ -1,10 +1,12 @@
 package common.db;
 
+import java.io.Serializable;
+
 /**
  *
  * @author Ricardo Marquez
  */
-public class Converters {
+public class Converters implements Serializable{
   
   /**
    * 

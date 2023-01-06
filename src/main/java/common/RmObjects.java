@@ -111,6 +111,27 @@ public class RmObjects {
       RmExceptions.throwException("file '%s' does not exist.", filename);
     }
     return result;
-    
+  }
+  
+  /**
+   * 
+   * @param file
+   * @return 
+   */
+  public static File fileExists(File file, String format, Object... args) {
+    if (!file.exists()) {
+      RmExceptions.throwException(format, args);
+    }
+    return file;
+  }
+  /**
+   * 
+   * @param file
+   * @return 
+   */
+  public static String fileExists(String file, String format, Object... args) {
+    File f = fileExists(new File(file), format, args);
+    String result = f.getAbsolutePath();
+    return result; 
   }
 }

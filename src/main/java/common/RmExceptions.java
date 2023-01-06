@@ -25,7 +25,7 @@ public final class RmExceptions {
    * 
    * @param r 
    */
-  public static void doIt(RunnableWithException r) {
+  public static void runAndEncloseException(RunnableWithException r) {
     try {
       r.run();
     } catch(Exception ex) {
