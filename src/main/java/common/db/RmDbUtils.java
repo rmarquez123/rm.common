@@ -1,10 +1,5 @@
 package common.db;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.PrecisionModel;
-import com.vividsolutions.jts.io.WKBReader;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -19,6 +14,11 @@ import javax.measure.unit.Unit;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.PrecisionModel;
+import org.locationtech.jts.io.WKBReader;
 
 /**
  *
@@ -26,7 +26,50 @@ import javax.persistence.Persistence;
  */
 public class RmDbUtils {
 
-  private static Map<String, EntityManagerFactory> EMFS = new HashMap<>();
+  private static final Map<String, EntityManagerFactory> EMFS = new HashMap<>();
+
+  /**
+   *
+   * @param conn
+   */
+  public static EntityManager createEntityManager(DbConnection conn) {
+    HashMap<String, String> credentials = new HashMap<>();
+    credentials.put("hibernate.connection.url", conn.getConnectionUrl());
+    credentials.put("hibernate.connection.username", conn.getUser());
+    credentials.put("hibernate.connection.password", conn.getPassword());
+    EntityManager result = Persistence //
+      .createEntityManagerFactory("wpls_idaho_power_pu", credentials)
+      .createEntityManager();
+    return result;
+  }
+
+  /**
+   *
+   * @param conn
+   */
+  public static EntityManager createEntityManager(DbConnection conn, String schema) {
+    HashMap<String, String> credentials = new HashMap<>();
+    credentials.put("hibernate.connection.url", conn.getConnectionUrl());
+    credentials.put("hibernate.connection.username", conn.getUser());
+    credentials.put("hibernate.connection.password", conn.getPassword());
+    credentials.put("hibernate.connection.schema", schema);
+    
+    EntityManager result = Persistence //
+      .createEntityManagerFactory("wpls_idaho_power_pu", credentials)
+      .createEntityManager();
+    return result;
+  }
+  
+  
+  /**
+   *
+   * @param conn
+   */
+  public static EntityManager createEntityManager(EntityManager em, String schema) {
+    Map<String, Object> props = em.getEntityManagerFactory().getProperties();
+    props.put("hibernate.connection.schema", schema);
+    return em;
+  }
 
   /**
    *
@@ -54,7 +97,9 @@ public class RmDbUtils {
   public static EntityManager createEntityManager(String pu, // 
     String connUrl, String user, String password) {
     if (!EMFS.containsKey(pu)) {
-      EMFS.put(pu, Persistence.createEntityManagerFactory(pu));
+      System.out.println("creating entity manager factory");
+      EntityManagerFactory emf = Persistence.createEntityManagerFactory(pu);
+      EMFS.put(pu, emf);
     }
     EntityManagerFactory emf = EMFS.get(pu);
     long curr = System.currentTimeMillis();
@@ -62,6 +107,7 @@ public class RmDbUtils {
     credentials.put("hibernate.connection.url", connUrl);
     credentials.put("hibernate.connection.username", user);
     credentials.put("hibernate.connection.password", password);
+
     EntityManager result = Persistence //
       .createEntityManagerFactory("wpls_idaho_power_pu", credentials)
       .createEntityManager();
@@ -145,7 +191,7 @@ public class RmDbUtils {
     }
     return aDouble;
   }
-  
+
   /**
    *
    * @param <E>
@@ -157,7 +203,7 @@ public class RmDbUtils {
   public static Point pointValue(ResultSet rs, String col, int srid) {
     Point result;
     try {
-      GeometryFactory factory = new GeometryFactory(new PrecisionModel(PrecisionModel.FLOATING), srid); 
+      GeometryFactory factory = new GeometryFactory(new PrecisionModel(PrecisionModel.FLOATING), srid);
       WKBReader reader = new WKBReader(factory);
       Geometry geometry = reader.read(rs.getBytes(col));
       result = (Point) geometry;
@@ -203,6 +249,15 @@ public class RmDbUtils {
     return result;
   }
 
+  public static boolean booleanValue(ResultSet rs, String col) {
+    try {
+      return rs.getBoolean(col);
+    } catch (SQLException ex) {
+      throw new RuntimeException(ex);
+    }
+  }
+  
+  
   public static String stringValue(ResultSet rs, String col) {
     try {
       return rs.getString(col);

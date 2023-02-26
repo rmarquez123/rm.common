@@ -5,7 +5,34 @@ package common;
  * @author Ricardo Marquez
  */
 public final class RmExceptions {
-
+  /**
+   * 
+   * @param format
+   * @param objects 
+   */
+  public static RuntimeException create(Exception ex, String format, Object... objects) {
+    String message; 
+    if (objects == null || objects.length == 0) {
+      message = String.format(format, objects);
+    } else {
+      message = format;
+    }
+    return new RuntimeException(message, ex);
+  }
+  /**
+   * 
+   * @param format
+   * @param objects 
+   */
+  public static RuntimeException create(String format, Object... objects) {
+    String message; 
+    if (objects == null || objects.length == 0) {
+      message = format;
+    } else {
+      message = String.format(format, objects);  
+    }
+    return new RuntimeException(message);
+  }
   /**
    * 
    * @param format
@@ -13,10 +40,10 @@ public final class RmExceptions {
    */
   public static void throwException(String format, Object... objects) {
     String message; 
-    if (objects == null || objects.length == 0) {
+    if (objects != null && objects.length != 0) {
       message = String.format(format, objects);
     } else {
-      message = format;
+      message = format;  
     }
     throw new RuntimeException(message);
   }
@@ -46,7 +73,8 @@ public final class RmExceptions {
    * @param ex 
    */
   public static void throwException(Exception ex, String format, Object... objs) {
-    throw new RuntimeException(ex); 
+    String message = String.format(format, objs); 
+    throw new RuntimeException(message, ex); 
   }
   
   /**

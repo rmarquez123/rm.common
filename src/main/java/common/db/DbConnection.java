@@ -168,6 +168,19 @@ public class DbConnection implements Serializable {
   public void executeQuery(String sql, Consumer<ResultSet> consumer) {
     this.executeQuery(sql, DEFAULT_FETCHSIZE, consumer);
   }
+  
+  /**
+   *
+   * @param sql
+   * @param consumer
+   */
+  public <T> T executeQuerySingleResult(String sql, Function<ResultSet, T> consumer) {
+    MutableObject<T> obj = new MutableObject<>(null);
+    this.executeQuery(sql, DEFAULT_FETCHSIZE, (rs)->{
+      obj.setValue(consumer.apply(rs));
+    });
+    return obj.getValue();
+  }
 
   /**
    *

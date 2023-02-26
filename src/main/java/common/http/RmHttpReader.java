@@ -1,18 +1,24 @@
 package common.http;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -34,30 +40,123 @@ public class RmHttpReader {
   }
 
   public void read(Consumer<String> consumer) {
+    URL updatedUrl = this.getUpdatedUrl();
+    this.read(updatedUrl, consumer);
+  }
+
+  /**
+   *
+   * @return
+   */
+  private URL getUpdatedUrl() {
+    String query = this.url.getQuery();
+    String path = query == null ? this.url.toString() : this.url.toString().replace("", "");
+    String newQueryParams = this.requestParams.entrySet().stream()
+      .map((e) -> e.getKey() + "=" + e.getValue())
+      .collect(Collectors.joining("&"));
+    URL updatedUrl;
+    if (!newQueryParams.isEmpty()) {
+      if (query == null) {
+        updatedUrl = this.toUrl(path + "?" + newQueryParams);
+      } else {
+        updatedUrl = this.toUrl(path + query + "&" + newQueryParams);
+      }
+    } else {
+      updatedUrl = this.url;
+    }
+    return updatedUrl;
+  }
+
+  /**
+   *
+   * @return
+   */
+  private URL toUrl(String spec) {
     try {
-      String query = this.url.getQuery();
-      String path = query == null ? this.url.toString() : this.url.toString().replace("", "");
+      return new URL(spec);
+    } catch (MalformedURLException ex) {
+      throw new RuntimeException(ex);
+    }
+  }
+  
+  private void read(URL updatedUrl, Consumer<String> consumer) {
+    InputStream connInputStream = this.getInputStream(updatedUrl);
+    Charset charset = Charset.forName("UTF-8");
+    InputStreamReader inputStreamReader = new InputStreamReader(connInputStream, charset);
+    try (BufferedReader stream = new BufferedReader(inputStreamReader)) {
+      String line;
+      while ((line = stream.readLine()) != null) {
+        consumer.accept(line);
+      }
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
+  }
+  
+  
+
+  /**
+   *
+   * @param updatedUrl
+   * @return
+   */
+  private InputStream getInputStream(URL updatedUrl) {
+    try {
+      URLConnection connection = (HttpURLConnection) updatedUrl.openConnection();
+      
+      this.attrs.forEach((k, v) -> connection.setRequestProperty(k, v));
+      InputStream connInputStream = this.getInputStream(connection);
+      return connInputStream;
+    } catch (IOException ex) {
+      throw new RuntimeException(ex);
+    }
+  }
+
+  /**
+   *
+   * @param connection
+   * @return
+   */
+  private InputStream getInputStream(URLConnection connection) {
+    InputStream connInputStream;
+    try {
+      connection.connect();
+      String redirect = connection.getHeaderField("Location");
+      if (redirect == null) {
+        connInputStream = connection.getInputStream();
+      } else {
+        URLConnection redirectConn = this.toUrl(redirect).openConnection();
+        connInputStream = this.getInputStream(redirectConn);
+      } 
+    } catch (IOException ex) {
+      throw new RuntimeException(ex);
+    }
+    return connInputStream;
+  }
+
+  private void post() {
+    try {
       String newQueryParams = this.requestParams.entrySet().stream()
         .map((e) -> e.getKey() + "=" + e.getValue())
         .collect(Collectors.joining("&"));
-      URL updatedUrl;
-      if (query == null) {
-        updatedUrl = new URL(path + "?" + newQueryParams);
-      } else {
-        updatedUrl = new URL(path + query + "&" + newQueryParams);
+      HttpURLConnection connection = (HttpURLConnection) this.url.openConnection();
+      connection.setRequestMethod("POST");
+      connection.setDoOutput(true);
+      try (OutputStream os = connection.getOutputStream()) {
+        os.write(newQueryParams.getBytes());
+        os.flush();
       }
-      URLConnection connection = (HttpURLConnection) updatedUrl.openConnection();
-      this.attrs.forEach((k, v) -> connection.setRequestProperty(k, v));
       connection.connect();
-      Charset charset = Charset.forName("UTF-8");
-      InputStream connInputStream = connection.getInputStream();
-      InputStreamReader inputStreamReader = new InputStreamReader(connInputStream, charset);
-      try (BufferedReader stream = new BufferedReader(inputStreamReader)) {
-        String line;
-        while ((line = stream.readLine()) != null) {
-          consumer.accept(line);
-        }
+      int code = connection.getResponseCode();
+      connection.getResponseMessage();
+      if (code != 200) {
+        InputStream stream = connection.getErrorStream();
+        String error = IOUtils.readLines(stream, Charset.defaultCharset()) //
+          .stream() //
+          .collect(Collectors.joining("\n"));
+        throw new RuntimeException(error);
       }
+      System.out.println("code = " + code);
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
@@ -116,6 +215,18 @@ public class RmHttpReader {
       RmHttpReader reader = this.create();
       reader.read(consumer);
     }
+    
+    /**
+     *
+     * @param consumer
+     */
+    public <T> List<T> readTo(Function<String, T> consumer) {
+      RmHttpReader reader = this.create();
+      List<T> result = new ArrayList<>();
+      reader.read((c)->result.add(consumer.apply(c)));
+      return result;
+    }
+    
 
     /**
      *
@@ -141,7 +252,7 @@ public class RmHttpReader {
       }
       return result;
     }
-    
+
     /**
      *
      * @return
@@ -152,8 +263,8 @@ public class RmHttpReader {
       JSONArray result;
       try {
         result = new JSONArray(string.toString());
-      } catch (JSONException ex) {  
-        throw new RuntimeException(ex);  
+      } catch (JSONException ex) {
+        throw new RuntimeException(ex);
       }
       return result;
     }
@@ -166,6 +277,11 @@ public class RmHttpReader {
     public Builder setRequestParam(String key, String value) {
       this.requestParams.put(key, value);
       return this;
+    }
+
+    public void post() {
+      RmHttpReader reader = this.create();
+      reader.post();
     }
   }
 }
