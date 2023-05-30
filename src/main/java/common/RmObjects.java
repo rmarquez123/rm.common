@@ -92,6 +92,7 @@ public class RmObjects {
 
   /**
    * System.out.println(String.format(s_v, args));
+   *
    * @param s_v
    * @param k
    * @param v
@@ -101,9 +102,9 @@ public class RmObjects {
   }
 
   /**
-   * 
+   *
    * @param filename
-   * @return 
+   * @return
    */
   public static File fileExists(String filename) {
     File result = new File(filename);
@@ -112,11 +113,11 @@ public class RmObjects {
     }
     return result;
   }
-  
+
   /**
-   * 
+   *
    * @param file
-   * @return 
+   * @return
    */
   public static File fileExists(File file, String format, Object... args) {
     if (!file.exists()) {
@@ -124,14 +125,33 @@ public class RmObjects {
     }
     return file;
   }
+
   /**
-   * 
+   *
    * @param file
-   * @return 
+   * @return
    */
   public static String fileExists(String file, String format, Object... args) {
     File f = fileExists(new File(file), format, args);
     String result = f.getAbsolutePath();
-    return result; 
+    return result;
+  }
+
+  /**
+   * 
+   * @param file 
+   */
+  public static void createFileIfDoesNotExists(File file) {
+    try {
+      if (!file.getParentFile().exists()) {
+        file.getParentFile().mkdirs();
+      }
+      if (!file.exists()) {
+        file.createNewFile();
+      }
+    } catch(Exception ex) {
+      throw new RuntimeException(ex); 
+    }
+
   }
 }

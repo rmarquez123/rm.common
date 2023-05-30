@@ -8,7 +8,7 @@ import javax.measure.unit.Unit;
 /**
  *
  */
-public class MeasureStringConverter<T extends Quantity> extends StringConverter<Measure<T>> {
+public class MeasureStringConverter<T extends Quantity> extends StringConverter<Measure< T>> {
 
   private final Unit<T> unit;
 
@@ -22,7 +22,7 @@ public class MeasureStringConverter<T extends Quantity> extends StringConverter<
    * @return
    */
   @Override
-  public String toString(Measure<T> object) {
+  public String toString(Measure< T> object) {
     return object == null ? "" : String.valueOf(object.doubleValue(this.unit));
   }
 
@@ -32,7 +32,7 @@ public class MeasureStringConverter<T extends Quantity> extends StringConverter<
    * @return
    */
   @Override
-  public Measure<T> fromString(String string) {
+  public Measure< T> fromString(String string) {
     return string == null || string.isEmpty() ? null : Measure.valueOf(Double.parseDouble(string), this.unit);
   }
   

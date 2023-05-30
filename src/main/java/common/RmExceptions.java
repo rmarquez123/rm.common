@@ -13,9 +13,9 @@ public final class RmExceptions {
   public static RuntimeException create(Exception ex, String format, Object... objects) {
     String message; 
     if (objects == null || objects.length == 0) {
-      message = String.format(format, objects);
-    } else {
       message = format;
+    } else {
+      message = String.format(format, objects);
     }
     return new RuntimeException(message, ex);
   }

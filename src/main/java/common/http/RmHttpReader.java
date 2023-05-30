@@ -78,7 +78,26 @@ public class RmHttpReader {
       throw new RuntimeException(ex);
     }
   }
-  
+
+  private void post(URL updatedUrl, Consumer<String> consumer) {
+    InputStream connInputStream = this.getInputStream(updatedUrl, "POST");
+    Charset charset = Charset.forName("UTF-8");
+    InputStreamReader inputStreamReader = new InputStreamReader(connInputStream, charset);
+    try (BufferedReader stream = new BufferedReader(inputStreamReader)) {
+      String line;
+      while ((line = stream.readLine()) != null) {
+        consumer.accept(line);
+      }
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
+  }
+
+  /**
+   *
+   * @param updatedUrl
+   * @param consumer
+   */
   private void read(URL updatedUrl, Consumer<String> consumer) {
     InputStream connInputStream = this.getInputStream(updatedUrl);
     Charset charset = Charset.forName("UTF-8");
@@ -92,8 +111,6 @@ public class RmHttpReader {
       throw new RuntimeException(ex);
     }
   }
-  
-  
 
   /**
    *
@@ -101,9 +118,18 @@ public class RmHttpReader {
    * @return
    */
   private InputStream getInputStream(URL updatedUrl) {
+    return this.getInputStream(updatedUrl, "GET");
+  }
+
+  /**
+   *
+   * @param updatedUrl
+   * @return
+   */
+  private InputStream getInputStream(URL updatedUrl, String requestMethod) {
     try {
-      URLConnection connection = (HttpURLConnection) updatedUrl.openConnection();
-      
+      HttpURLConnection connection = (HttpURLConnection) updatedUrl.openConnection();
+      connection.setRequestMethod(requestMethod);
       this.attrs.forEach((k, v) -> connection.setRequestProperty(k, v));
       InputStream connInputStream = this.getInputStream(connection);
       return connInputStream;
@@ -127,7 +153,7 @@ public class RmHttpReader {
       } else {
         URLConnection redirectConn = this.toUrl(redirect).openConnection();
         connInputStream = this.getInputStream(redirectConn);
-      } 
+      }
     } catch (IOException ex) {
       throw new RuntimeException(ex);
     }
@@ -215,7 +241,7 @@ public class RmHttpReader {
       RmHttpReader reader = this.create();
       reader.read(consumer);
     }
-    
+
     /**
      *
      * @param consumer
@@ -223,10 +249,9 @@ public class RmHttpReader {
     public <T> List<T> readTo(Function<String, T> consumer) {
       RmHttpReader reader = this.create();
       List<T> result = new ArrayList<>();
-      reader.read((c)->result.add(consumer.apply(c)));
+      reader.read((c) -> result.add(consumer.apply(c)));
       return result;
     }
-    
 
     /**
      *
@@ -235,6 +260,17 @@ public class RmHttpReader {
     private RmHttpReader create() {
       RmHttpReader instance = new RmHttpReader(url, this.requestParams, this.attrs);
       return instance;
+    }
+
+    /**
+     *
+     * @return
+     */
+    public InputStream readStream() {
+      RmHttpReader reader = this.create();
+      reader.getUpdatedUrl();
+      InputStream result = reader.getInputStream(url);
+      return result;
     }
 
     /**
@@ -283,5 +319,29 @@ public class RmHttpReader {
       RmHttpReader reader = this.create();
       reader.post();
     }
+      
+    
+    /**
+     * 
+     * @param consumer 
+     */
+    public void post(Consumer<String> consumer) {
+      RmHttpReader reader = this.create();
+      URL updatedUrl = reader.getUpdatedUrl();
+      reader.post(updatedUrl, consumer);
+    }
+
+    public JSONObject postAndReadJsonObject() {
+      StringBuilder string = new StringBuilder();
+      this.post(s -> string.append(s).append("\n"));
+      JSONObject result;
+      try {
+        result = new JSONObject(string.toString());
+      } catch (JSONException ex) {
+        throw new RuntimeException(ex);
+      }
+      return result;
+    }
+
   }
 }

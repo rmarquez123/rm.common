@@ -285,7 +285,8 @@ public class DbConnection implements Serializable {
    * @return
    */
   public String getConnectionUrl() {
-    String _url = "jdbc:postgresql://" + this.getUrl()
+    String sep = "//";
+    String _url = "jdbc:postgresql:" + sep + this.getUrl()
       + ":" + this.port
       + "/" + this.databaseName;
     return _url;
@@ -597,18 +598,21 @@ public class DbConnection implements Serializable {
    * @return
    */
   public int executeStatement(String query) {
-    Connection conn = this.getConnection();
-    PreparedStatement statement;
-    try {
-      statement = conn.prepareStatement(query);
-    } catch (SQLException ex) {
-      throw new RuntimeException(ex);
-    }
     int result;
-    try {
-      result = statement.executeUpdate();
-    } catch (SQLException ex) {
-      throw new RuntimeException(ex);
+    try (Connection conn = this.getConnection()) {
+      PreparedStatement statement;
+      try {
+        statement = conn.prepareStatement(query);
+      } catch (SQLException ex) {
+        throw new RuntimeException(ex);
+      }
+      try {
+        result = statement.executeUpdate();
+      } catch (SQLException ex) {
+        throw new RuntimeException(ex);
+      }
+    } catch(Exception ex) {
+      throw new RuntimeException(ex); 
     }
     return result;
   }

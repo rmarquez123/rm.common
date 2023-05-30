@@ -96,18 +96,11 @@ public class RmDbUtils {
    */
   public static EntityManager createEntityManager(String pu, // 
     String connUrl, String user, String password) {
-    if (!EMFS.containsKey(pu)) {
-      System.out.println("creating entity manager factory");
-      EntityManagerFactory emf = Persistence.createEntityManagerFactory(pu);
-      EMFS.put(pu, emf);
-    }
-    EntityManagerFactory emf = EMFS.get(pu);
     long curr = System.currentTimeMillis();
     HashMap<String, String> credentials = new HashMap<>();
     credentials.put("hibernate.connection.url", connUrl);
     credentials.put("hibernate.connection.username", user);
     credentials.put("hibernate.connection.password", password);
-
     EntityManager result = Persistence //
       .createEntityManagerFactory("wpls_idaho_power_pu", credentials)
       .createEntityManager();
@@ -155,7 +148,7 @@ public class RmDbUtils {
     } catch (SQLException ex) {
       throw new RuntimeException(ex);
     }
-    Measure<E> result = Measure.valueOf(aDouble, unit);
+    Measure< E> result = Measure.valueOf(aDouble, unit);
     return result;
   }
 
@@ -237,15 +230,15 @@ public class RmDbUtils {
    * @param unit
    * @return
    */
-  public static <E extends Quantity> Measure<E> // 
+  public static <E extends Quantity> Measure< E> // 
     intValue(ResultSet rs, String col, Unit<E> unit) {
-    int aDouble;
+    double aDouble;
     try {
-      aDouble = rs.getInt(col);
+      aDouble = new Integer(rs.getInt(col)).doubleValue();
     } catch (SQLException ex) {
       throw new RuntimeException(ex);
     }
-    Measure<E> result = Measure.valueOf(aDouble, unit);
+    Measure< E> result = Measure.valueOf(aDouble, unit);
     return result;
   }
 
