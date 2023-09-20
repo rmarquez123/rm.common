@@ -23,13 +23,13 @@ public class CacheInterceptUtil {
    */
   public static <T> T intercept(Object a, Class<T> interfaceClass) {
     Method[] methods = a.getClass().getDeclaredMethods();
-    List<Method> ms = new ArrayList<>();
+    List<Method> methodslist = new ArrayList<>();
     for (Method method : methods) {
       if (method.getDeclaredAnnotation(CacheIntercept.class) != null) {
-        ms.add(method); 
+        methodslist.add(method); 
       }
     }
-    T p = getProxy(a, interfaceClass, ms);
+    T p = getProxy(a, interfaceClass, methodslist);
     return p;
   }
   

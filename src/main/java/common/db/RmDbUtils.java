@@ -1,5 +1,7 @@
 package common.db;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -70,6 +72,20 @@ public class RmDbUtils {
     props.put("hibernate.connection.schema", schema);
     return em;
   }
+  
+  /**
+   * 
+   * @param resultSet
+   * @param name
+   * @return 
+   */
+  public static Object stringValueDecoded(ResultSet resultSet, String name) {
+    try { 
+      return URLDecoder.decode(stringValue(resultSet, name), "UTF-8");
+    } catch (UnsupportedEncodingException ex) {
+      throw new RuntimeException(ex);
+    }
+  }
 
   /**
    *
@@ -96,6 +112,7 @@ public class RmDbUtils {
    */
   public static EntityManager createEntityManager(String pu, // 
     String connUrl, String user, String password) {
+    
     long curr = System.currentTimeMillis();
     HashMap<String, String> credentials = new HashMap<>();
     credentials.put("hibernate.connection.url", connUrl);

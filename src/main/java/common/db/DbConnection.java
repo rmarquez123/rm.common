@@ -145,6 +145,29 @@ public class DbConnection implements Serializable {
     T result = list.stream().findFirst().orElse(null);
     return result;
   }
+    
+  /**
+   * 
+   * @param <T>
+   * @param sql
+   * @param column
+   * @param clazz
+   * @return 
+   */
+  public <T> T executeSingleResultQuery(String sql, String column, Class<T> clazz) {
+    List<T> list = this.executeQuery(sql, (rs)->{
+      try { 
+        return rs.getObject(column, clazz);
+      } catch (SQLException ex) {
+        throw new RuntimeException(ex); 
+      }
+    }); 
+    if (list.size() > 1) {
+      throw new RuntimeException("Query returned more than 1 result."); 
+    }
+    T result = list.isEmpty() ? null : list.get(0);
+    return result;
+  }
 
 
   /**
@@ -642,7 +665,7 @@ public class DbConnection implements Serializable {
       try {
         result[i] = statement.executeUpdate();
       } catch (SQLException ex) {
-        throw new RuntimeException(ex);
+        throw new RuntimeException("Error on statement: " + statementText, ex);
       }
     }
     try {
@@ -738,6 +761,7 @@ public class DbConnection implements Serializable {
       .withOutputProcessor(consumer)
       .run();
   }
+
 
   /**
    *
