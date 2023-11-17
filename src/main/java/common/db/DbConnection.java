@@ -2,9 +2,9 @@ package common.db;
 
 import common.process.ProcessFacade;
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -40,22 +40,31 @@ import org.apache.commons.lang3.mutable.MutableObject;
 public class DbConnection implements Serializable {
 
   private static final int DEFAULT_FETCHSIZE = 0;
-  private final String user;
-  private final String password;
-  private final String databaseName;
-  private final String url;
-  private final Integer port;
+  
   private Connection connection;
+  private final ConnectionPool connPool; 
   private final Converters converters;
 
   public DbConnection(String user, String password, String databaseName, String url, Integer port) {
-    this.user = user;
-    this.password = password;
-    this.databaseName = databaseName;
-    this.url = url;
-    this.port = port;
+    this.connPool = new DefaultConnectionPool(user, password, databaseName, url, port);
     this.converters = new Converters();
   }
+  
+  
+  public DbConnection(ConnectionPool connPool) {
+    this.connPool = connPool;
+    this.converters = new Converters();
+  }
+  
+  /**
+   * 
+   * @return 
+   */
+  public ConnectionPool getConnPool() {
+    return connPool;
+  }
+  
+  
 
   /**
    * The parent database. <code> new DbConnection(user, password, url, port); </code>
@@ -63,7 +72,7 @@ public class DbConnection implements Serializable {
    * @return
    */
   public DbConnection parentDb() {
-    return new DbConnection(user, password, url, port);
+    return connPool.parentDb();
   }
 
   /**
@@ -76,26 +85,7 @@ public class DbConnection implements Serializable {
   public DbConnection(String user, String password, String url, Integer port) {
     this(user, password, "postgres", url, port);
   }
-
-  public String getUser() {
-    return user;
-  }
-
-  public String getPassword() {
-    return password;
-  }
-
-  public String getDatabaseName() {
-    return databaseName;
-  }
-
-  public String getUrl() {
-    return url;
-  }
-
-  public Integer getPort() {
-    return port;
-  }
+  
 
   /**
    *
@@ -129,46 +119,56 @@ public class DbConnection implements Serializable {
     }
     return effectedRows;
   }
-  
+    
   /**
    * 
+   */
+  public void close() {
+    try {
+      this.connPool.close();   
+    } catch (IOException ex) {
+      Logger.getLogger(DbConnection.class.getName()).log(Level.SEVERE, null, ex);
+    }
+  }
+
+  /**
+   *
    * @param <T>
    * @param sql
    * @param mapper
-   * @return 
+   * @return
    */
-  public <T> T executeSingleResultQuery(String sql, Function<ResultSet,T> mapper) {
-    List<T> list = this.executeQuery(sql, mapper); 
+  public <T> T executeSingleResultQuery(String sql, Function<ResultSet, T> mapper) {
+    List<T> list = this.executeQuery(sql, mapper);
     if (list.size() > 1) {
-      throw new RuntimeException("Query returned more than 1 result."); 
+      throw new RuntimeException("Query returned more than 1 result.");
     }
     T result = list.stream().findFirst().orElse(null);
     return result;
   }
-    
+
   /**
-   * 
+   *
    * @param <T>
    * @param sql
    * @param column
    * @param clazz
-   * @return 
+   * @return
    */
   public <T> T executeSingleResultQuery(String sql, String column, Class<T> clazz) {
-    List<T> list = this.executeQuery(sql, (rs)->{
-      try { 
+    List<T> list = this.executeQuery(sql, (rs) -> {
+      try {
         return rs.getObject(column, clazz);
       } catch (SQLException ex) {
-        throw new RuntimeException(ex); 
+        throw new RuntimeException(ex);
       }
-    }); 
+    });
     if (list.size() > 1) {
-      throw new RuntimeException("Query returned more than 1 result."); 
+      throw new RuntimeException("Query returned more than 1 result.");
     }
     T result = list.isEmpty() ? null : list.get(0);
     return result;
   }
-
 
   /**
    *
@@ -191,7 +191,7 @@ public class DbConnection implements Serializable {
   public void executeQuery(String sql, Consumer<ResultSet> consumer) {
     this.executeQuery(sql, DEFAULT_FETCHSIZE, consumer);
   }
-  
+
   /**
    *
    * @param sql
@@ -199,7 +199,7 @@ public class DbConnection implements Serializable {
    */
   public <T> T executeQuerySingleResult(String sql, Function<ResultSet, T> consumer) {
     MutableObject<T> obj = new MutableObject<>(null);
-    this.executeQuery(sql, DEFAULT_FETCHSIZE, (rs)->{
+    this.executeQuery(sql, DEFAULT_FETCHSIZE, (rs) -> {
       obj.setValue(consumer.apply(rs));
     });
     return obj.getValue();
@@ -212,8 +212,7 @@ public class DbConnection implements Serializable {
    */
   public void executeQuery(String sql, int fetchSize, Consumer<ResultSet> consumer) {
     Connection conn = this.getConnection();
-    try {
-      PreparedStatement statement = conn.prepareCall(sql);
+    try (PreparedStatement statement = conn.prepareCall(sql)) {
       statement.setFetchSize(fetchSize);
       conn.setAutoCommit(false);
       ResultSet resultSet = statement.executeQuery();
@@ -233,11 +232,8 @@ public class DbConnection implements Serializable {
 
   @Override
   public int hashCode() {
-    int hash = 3;
-    hash = 43 * hash + Objects.hashCode(this.user);
-    hash = 43 * hash + Objects.hashCode(this.databaseName);
-    hash = 43 * hash + Objects.hashCode(this.url);
-    hash = 43 * hash + Objects.hashCode(this.port);
+    int hash = 7;
+    hash = 59 * hash + Objects.hashCode(this.connPool);
     return hash;
   }
 
@@ -253,23 +249,13 @@ public class DbConnection implements Serializable {
       return false;
     }
     final DbConnection other = (DbConnection) obj;
-    if (!Objects.equals(this.user, other.user)) {
-      return false;
-    }
-    if (!Objects.equals(this.password, other.password)) {
-      return false;
-    }
-    if (!Objects.equals(this.databaseName, other.databaseName)) {
-      return false;
-    }
-    if (!Objects.equals(this.url, other.url)) {
-      return false;
-    }
-    if (!Objects.equals(this.port, other.port)) {
+    if (!Objects.equals(this.connPool, other.connPool)) {
       return false;
     }
     return true;
   }
+
+  
 
   /**
    *
@@ -286,21 +272,7 @@ public class DbConnection implements Serializable {
    * @return
    */
   public Connection getConnection() {
-    Connection result;
-    try {
-      String _url = this.getConnectionUrl();
-      String _username = this.user;
-      String _password = this.password;
-      try {
-        Class.forName("org.postgresql.Driver");
-      } catch (ClassNotFoundException ex) {
-        throw new RuntimeException(ex);
-      }
-      result = DriverManager.getConnection(_url, _username, _password);
-    } catch (SQLException ex) {
-      throw new RuntimeException(ex);
-    }
-    return result;
+    return this.connPool.getConnection();
   }
 
   /**
@@ -308,11 +280,7 @@ public class DbConnection implements Serializable {
    * @return
    */
   public String getConnectionUrl() {
-    String sep = "//";
-    String _url = "jdbc:postgresql:" + sep + this.getUrl()
-      + ":" + this.port
-      + "/" + this.databaseName;
-    return _url;
+    return this.connPool.getConnectionUrl();
   }
 
   /**
@@ -503,7 +471,7 @@ public class DbConnection implements Serializable {
         .map((e) -> "excluded." + e)
         .collect(Collectors.toList());
       String columns_no_pk = String.join(separator, keySetNoPkWithExcludePrefix);
-      
+
       String sql = String.format("insert into %s \n(%s) \n values (%s) \n"
         + " on conflict (%s) do update\n ",
         new Object[]{
@@ -514,11 +482,11 @@ public class DbConnection implements Serializable {
         });
       String set;
       if (keySetNoPkWithExcludePrefix.size() < 2) {
-        set = String.format(" set %s = %s", 
+        set = String.format(" set %s = %s",
           String.join(",", keySetNoPk),
           columns_no_pk);
       } else {
-        set = String.format(" set (%s) = (%s)", 
+        set = String.format(" set (%s) = (%s)",
           String.join(",", keySetNoPk),
           columns_no_pk);
       }
@@ -573,13 +541,7 @@ public class DbConnection implements Serializable {
    * @return
    */
   public Properties properties() {
-    Properties result = new Properties();
-    result.put("url", this.url);
-    result.put("databaseName", this.databaseName);
-    result.put("password", this.password);
-    result.put("port", this.port);
-    result.put("user", this.user);
-    return result;
+    return this.connPool.properties();
   }
 
   /**
@@ -634,8 +596,8 @@ public class DbConnection implements Serializable {
       } catch (SQLException ex) {
         throw new RuntimeException(ex);
       }
-    } catch(Exception ex) {
-      throw new RuntimeException(ex); 
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
     }
     return result;
   }
@@ -688,10 +650,11 @@ public class DbConnection implements Serializable {
   public void runSqlFile(File dbBinDir, File schemaSqlFile, Consumer<String> outputConsumer) {
     String statement // 
       = String.format("cmd.exe /c %s\\psql.exe -h %s -d %s -U %s -p %d -a -q -f \"%s\"",//
-      dbBinDir, //
-      this.getUrl(), this.getDatabaseName(), // 
-      this.getUser(), this.getPort(), schemaSqlFile.getAbsolutePath());
-    String _password = this.getPassword();
+        dbBinDir, //
+        this.connPool.getUrl(), this.connPool.getDatabaseName(), // 
+        this.connPool.getUser(), this.connPool.getPort(), schemaSqlFile.getAbsolutePath());
+    String _password = this.connPool.getPassword();
+    
     HashMap<String, String> hashMap = new HashMap<>();
     hashMap.put("PGPASSWORD", _password);
     new ProcessFacade.Builder()
@@ -700,11 +663,11 @@ public class DbConnection implements Serializable {
       .withOutputProcessor(outputConsumer)
       .run();
   }
-  
+
   /**
-   * 
+   *
    * @param postGresBin
-   * @param dataFolder 
+   * @param dataFolder
    */
   public void startDb(File postGresBin, File dataFolder) {
     this.startDb(postGresBin, dataFolder, System.out::println);
@@ -716,7 +679,7 @@ public class DbConnection implements Serializable {
   public void startDb(File postGresBin, File dataFolder, Consumer<String> consumer) {
     String statement // 
       = String.format("%s\\pg_ctl.exe restart -D \"%s\" -o \"--port=%d\" ", // 
-        postGresBin, dataFolder, this.port);
+        postGresBin, dataFolder, this.connPool.getPort());
 
     MutableObject<Boolean> done = new MutableObject<>(false);
     new ProcessFacade.Builder()
@@ -748,7 +711,7 @@ public class DbConnection implements Serializable {
   public void stopDb(File postGresBin, File dataFolder) {
     this.stopDb(postGresBin, dataFolder, System.out::println);
   }
-  
+
   /**
    *
    */
@@ -761,7 +724,6 @@ public class DbConnection implements Serializable {
       .withOutputProcessor(consumer)
       .run();
   }
-
 
   /**
    *

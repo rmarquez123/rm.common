@@ -35,6 +35,15 @@ public class RmThreadUtils {
 
     /**
      *
+     */
+    public void start(int millisDelay) {
+      RmDelayedTask.create(millisDelay, () -> {
+        this.create().start();
+      });
+    }
+
+    /**
+     *
      * @return
      */
     public Thread create() {

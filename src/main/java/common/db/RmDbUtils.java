@@ -37,8 +37,8 @@ public class RmDbUtils {
   public static EntityManager createEntityManager(DbConnection conn) {
     HashMap<String, String> credentials = new HashMap<>();
     credentials.put("hibernate.connection.url", conn.getConnectionUrl());
-    credentials.put("hibernate.connection.username", conn.getUser());
-    credentials.put("hibernate.connection.password", conn.getPassword());
+    credentials.put("hibernate.connection.username", conn.getConnPool().getUser());
+    credentials.put("hibernate.connection.password", conn.getConnPool().getPassword());
     EntityManager result = Persistence //
       .createEntityManagerFactory("wpls_idaho_power_pu", credentials)
       .createEntityManager();
@@ -52,8 +52,8 @@ public class RmDbUtils {
   public static EntityManager createEntityManager(DbConnection conn, String schema) {
     HashMap<String, String> credentials = new HashMap<>();
     credentials.put("hibernate.connection.url", conn.getConnectionUrl());
-    credentials.put("hibernate.connection.username", conn.getUser());
-    credentials.put("hibernate.connection.password", conn.getPassword());
+    credentials.put("hibernate.connection.username", conn.getConnPool().getUser());
+    credentials.put("hibernate.connection.password", conn.getConnPool().getPassword());
     credentials.put("hibernate.connection.schema", schema);
     
     EntityManager result = Persistence //
