@@ -16,7 +16,7 @@ public class FileStringConverter extends StringConverter<File> {
 
   @Override
   public File fromString(String string) {
-    return (string == null || string.isEmpty()) ? null : new File(string); 
+    return (string == null || string.isEmpty()) ? null : new File(string.replaceAll("\\\\", File.separator)); 
   }
   
 }

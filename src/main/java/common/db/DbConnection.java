@@ -172,8 +172,10 @@ public class DbConnection implements Serializable {
 
   /**
    *
+   * @param <T>
    * @param sql
    * @param mapper
+   * @return 
    */
   public <T> List<T> executeQuery(String sql, Function<ResultSet, T> mapper) {
     List<T> result = new ArrayList<>();
@@ -208,6 +210,7 @@ public class DbConnection implements Serializable {
   /**
    *
    * @param sql
+   * @param fetchSize
    * @param consumer
    */
   public void executeQuery(String sql, int fetchSize, Consumer<ResultSet> consumer) {
@@ -294,7 +297,7 @@ public class DbConnection implements Serializable {
     String[] parts = connUrl.replace("jdbc:postgresql://", "").replace(":", ",").replace("/", ",").split(",");
     String url = parts[0];
     String database = parts[2];
-    Integer port = Integer.parseInt(parts[1]);
+    Integer port = Integer.valueOf(parts[1]);
     DbConnection result = new DbConnection.Builder()
       .setUrl(url)
       .setPort(port)
