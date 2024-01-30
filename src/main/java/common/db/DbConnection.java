@@ -40,34 +40,32 @@ import org.apache.commons.lang3.mutable.MutableObject;
 public class DbConnection implements Serializable {
 
   private static final int DEFAULT_FETCHSIZE = 0;
-  
+
   private Connection connection;
-  private final ConnectionPool connPool; 
+  private final ConnectionPool connPool;
   private final Converters converters;
 
   public DbConnection(String user, String password, String databaseName, String url, Integer port) {
     this.connPool = new DefaultConnectionPool(user, password, databaseName, url, port);
     this.converters = new Converters();
   }
-  
-  
+
   public DbConnection(ConnectionPool connPool) {
     this.connPool = connPool;
     this.converters = new Converters();
   }
-  
+
   /**
-   * 
-   * @return 
+   *
+   * @return
    */
   public ConnectionPool getConnPool() {
     return connPool;
   }
-  
-  
 
   /**
-   * The parent database. <code> new DbConnection(user, password, url, port); </code>
+   * The parent database. <code> new DbConnection(user, password, url, port);
+   * </code>
    *
    * @return
    */
@@ -85,7 +83,6 @@ public class DbConnection implements Serializable {
   public DbConnection(String user, String password, String url, Integer port) {
     this(user, password, "postgres", url, port);
   }
-  
 
   /**
    *
@@ -100,7 +97,7 @@ public class DbConnection implements Serializable {
     String columns = String.join(separator, keySet);
     String valuePlaceHolders = StringUtils.repeat("?", separator, values.size());
     String sql = String.format("insert into %s (%s) values (%s)",
-      new Object[]{table, columns, valuePlaceHolders});
+            new Object[]{table, columns, valuePlaceHolders});
     Connection conn = this.getConnection();
     int effectedRows;
     try {
@@ -114,18 +111,18 @@ public class DbConnection implements Serializable {
         conn.close();
       } catch (SQLException ex) {
         Logger.getLogger(DbConnection.class.getName())
-          .log(Level.SEVERE, "An error occurred while closing the connection. ", ex);
+                .log(Level.SEVERE, "An error occurred while closing the connection. ", ex);
       }
     }
     return effectedRows;
   }
-    
+
   /**
-   * 
+   *
    */
   public void close() {
     try {
-      this.connPool.close();   
+      this.connPool.close();
     } catch (IOException ex) {
       Logger.getLogger(DbConnection.class.getName()).log(Level.SEVERE, null, ex);
     }
@@ -175,7 +172,7 @@ public class DbConnection implements Serializable {
    * @param <T>
    * @param sql
    * @param mapper
-   * @return 
+   * @return
    */
   public <T> List<T> executeQuery(String sql, Function<ResultSet, T> mapper) {
     List<T> result = new ArrayList<>();
@@ -258,8 +255,6 @@ public class DbConnection implements Serializable {
     return true;
   }
 
-  
-
   /**
    *
    * @return
@@ -299,12 +294,12 @@ public class DbConnection implements Serializable {
     String database = parts[2];
     Integer port = Integer.valueOf(parts[1]);
     DbConnection result = new DbConnection.Builder()
-      .setUrl(url)
-      .setPort(port)
-      .setDatabaseName(database)
-      .setUser(user)
-      .setPassword(password)
-      .createDbConnection();
+            .setUrl(url)
+            .setPort(port)
+            .setDatabaseName(database)
+            .setUser(user)
+            .setPassword(password)
+            .createDbConnection();
     return result;
   }
 
@@ -345,11 +340,11 @@ public class DbConnection implements Serializable {
       table_name = parts[1];
     }
     String query = "SELECT EXISTS (\n"
-      + "   SELECT 1\n"
-      + "   FROM   information_schema.tables \n"
-      + "   WHERE  table_schema = '" + schema + "'\n"
-      + "   AND    table_name = '" + table_name + "'\n"
-      + "   );";
+            + "   SELECT 1\n"
+            + "   FROM   information_schema.tables \n"
+            + "   WHERE  table_schema = '" + schema + "'\n"
+            + "   AND    table_name = '" + table_name + "'\n"
+            + "   );";
     this.executeQuery(query, (r) -> {
       try {
         boolean tableExists = r.getBoolean(1);
@@ -394,26 +389,26 @@ public class DbConnection implements Serializable {
     String sql;
     if (valuePlaceHoldersNoPk.length() == 1) {
       sql = String.format("insert into %s \n(%s) \n values (%s) \n"
-        + " on conflict (%s) do update\n "
-        + " set %s = ? ",
-        new Object[]{table,
-          columns,
-          valuePlaceHolders,
-          String.join(",", pk),
-          keySetNoPk.iterator().next(),
-          values_no_pk.get(0)
-        }
+              + " on conflict (%s) do update\n "
+              + " set %s = ? ",
+              new Object[]{table,
+                columns,
+                valuePlaceHolders,
+                String.join(",", pk),
+                keySetNoPk.iterator().next(),
+                values_no_pk.get(0)
+              }
       );
     } else {
       sql = String.format("insert into %s \n(%s) \n values (%s) \n"
-        + " on conflict (%s) do update\n "
-        + " set (%s) = (%s) ",
-        new Object[]{table,
-          columns,
-          valuePlaceHolders,
-          String.join(",", pk),
-          columns_no_pk
-        }
+              + " on conflict (%s) do update\n "
+              + " set (%s) = (%s) ",
+              new Object[]{table,
+                columns,
+                valuePlaceHolders,
+                String.join(",", pk),
+                columns_no_pk
+              }
       );
     }
 
@@ -433,7 +428,7 @@ public class DbConnection implements Serializable {
         conn.close();
       } catch (SQLException ex) {
         Logger.getLogger(DbConnection.class.getName())
-          .log(Level.SEVERE, "An error occurred while closing the connection. ", ex);
+                .log(Level.SEVERE, "An error occurred while closing the connection. ", ex);
       }
     }
     return effectedRows;
@@ -462,36 +457,36 @@ public class DbConnection implements Serializable {
       String separator = ", ";
       String columns = String.join(separator, keySet);
       String valuePlaceHolders = records.stream()
-        .map(
-          (r) -> keySet
-            .stream()
-            .map((k) -> this.converters.convert(r.get(k)))
-            .collect(Collectors.joining(","))
-        ).collect(Collectors.joining(")\n" + separator + "("));
+              .map(
+                      (r) -> keySet
+                              .stream()
+                              .map((k) -> this.converters.convert(r.get(k)))
+                              .collect(Collectors.joining(","))
+              ).collect(Collectors.joining(")\n" + separator + "("));
       Set<String> keySetNoPk = records.get(0).keySetNoPk();
       List<String> keySetNoPkWithExcludePrefix = keySetNoPk
-        .stream()
-        .map((e) -> "excluded." + e)
-        .collect(Collectors.toList());
+              .stream()
+              .map((e) -> "excluded." + e)
+              .collect(Collectors.toList());
       String columns_no_pk = String.join(separator, keySetNoPkWithExcludePrefix);
 
       String sql = String.format("insert into %s \n(%s) \n values (%s) \n"
-        + " on conflict (%s) do update\n ",
-        new Object[]{
-          table,
-          columns,
-          valuePlaceHolders,
-          String.join(",", pk)
-        });
+              + " on conflict (%s) do update\n ",
+              new Object[]{
+                table,
+                columns,
+                valuePlaceHolders,
+                String.join(",", pk)
+              });
       String set;
       if (keySetNoPkWithExcludePrefix.size() < 2) {
         set = String.format(" set %s = %s",
-          String.join(",", keySetNoPk),
-          columns_no_pk);
+                String.join(",", keySetNoPk),
+                columns_no_pk);
       } else {
         set = String.format(" set (%s) = (%s)",
-          String.join(",", keySetNoPk),
-          columns_no_pk);
+                String.join(",", keySetNoPk),
+                columns_no_pk);
       }
       sql = sql + "\n " + set;
       Connection conn = this.getConnection();
@@ -500,14 +495,14 @@ public class DbConnection implements Serializable {
         effectedRows = statement.executeUpdate();
       } catch (SQLException ex) {
         throw new RuntimeException(
-          String.format("Error running statement: '%s'", sql), // 
-          ex);
+                String.format("Error running statement: '%s'", sql), // 
+                ex);
       } finally {
         try {
           conn.close();
         } catch (SQLException ex) {
           Logger.getLogger(DbConnection.class.getName())
-            .log(Level.SEVERE, "An error occurred while closing the connection. ", ex);
+                  .log(Level.SEVERE, "An error occurred while closing the connection. ", ex);
         }
       }
     } else {
@@ -529,7 +524,7 @@ public class DbConnection implements Serializable {
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(((ZonedDateTime) objectValue).getZone()));
         ZonedDateTime withZoneSameInstant = ((ZonedDateTime) objectValue);
         long epochMilli = withZoneSameInstant.toInstant()
-          .toEpochMilli();
+                .toEpochMilli();
         Timestamp p = new Timestamp(epochMilli);
         statement.setTimestamp(columnIndex, p, cal);
       } else {
@@ -548,8 +543,8 @@ public class DbConnection implements Serializable {
   }
 
   /**
-   * Creates a db connection from properties object. The properties object contains the
-   * keys:
+   * Creates a db connection from properties object. The properties object
+   * contains the keys:
    * <ul>
    * <li> url(String)</li>
    * <li> port(int)</li>
@@ -568,15 +563,15 @@ public class DbConnection implements Serializable {
       throw new NullPointerException("port is not defined");
     }
     int port = (portVal instanceof String)
-      ? Integer.parseInt((String) portVal)
-      : (Integer) portVal;
+            ? Integer.parseInt((String) portVal)
+            : (Integer) portVal;
     DbConnection createDbConnection = new DbConnection.Builder()
-      .setUrl(p.getProperty("url"))
-      .setDatabaseName(p.getProperty("databaseName"))
-      .setPassword(p.getProperty("password"))
-      .setPort(port)
-      .setUser(p.getProperty("user"))
-      .createDbConnection();
+            .setUrl(p.getProperty("url"))
+            .setDatabaseName(p.getProperty("databaseName"))
+            .setPassword(p.getProperty("password"))
+            .setPort(port)
+            .setUser(p.getProperty("user"))
+            .createDbConnection();
     return createDbConnection;
   }
 
@@ -607,7 +602,7 @@ public class DbConnection implements Serializable {
 
   /**
    *
-   * @param query
+   * @param statements
    * @return
    */
   public int[] executeStatements(String... statements) {
@@ -652,19 +647,19 @@ public class DbConnection implements Serializable {
    */
   public void runSqlFile(File dbBinDir, File schemaSqlFile, Consumer<String> outputConsumer) {
     String statement // 
-      = String.format("cmd.exe /c %s\\psql.exe -h %s -d %s -U %s -p %d -a -q -f \"%s\"",//
-        dbBinDir, //
-        this.connPool.getUrl(), this.connPool.getDatabaseName(), // 
-        this.connPool.getUser(), this.connPool.getPort(), schemaSqlFile.getAbsolutePath());
+            = String.format("cmd.exe /c %s\\psql.exe -h %s -d %s -U %s -p %d -a -q -f \"%s\"",//
+                    dbBinDir, //
+                    this.connPool.getUrl(), this.connPool.getDatabaseName(), // 
+                    this.connPool.getUser(), this.connPool.getPort(), schemaSqlFile.getAbsolutePath());
     String _password = this.connPool.getPassword();
-    
+
     HashMap<String, String> hashMap = new HashMap<>();
     hashMap.put("PGPASSWORD", _password);
     new ProcessFacade.Builder()
-      .withStatement(statement)
-      .withEnvironmentVars(hashMap)
-      .withOutputProcessor(outputConsumer)
-      .run();
+            .withStatement(statement)
+            .withEnvironmentVars(hashMap)
+            .withOutputProcessor(outputConsumer)
+            .run();
   }
 
   /**
@@ -678,27 +673,30 @@ public class DbConnection implements Serializable {
 
   /**
    *
+   * @param postGresBin
+   * @param dataFolder
+   * @param consumer
    */
   public void startDb(File postGresBin, File dataFolder, Consumer<String> consumer) {
     String statement // 
-      = String.format("%s\\pg_ctl.exe restart -D \"%s\" -o \"--port=%d\" ", // 
-        postGresBin, dataFolder, this.connPool.getPort());
+            = String.format("%s\\pg_ctl.exe restart -D \"%s\" -o \"--port=%d\" ", // 
+                    postGresBin, dataFolder, this.connPool.getPort());
 
     MutableObject<Boolean> done = new MutableObject<>(false);
     new ProcessFacade.Builder()
-      .withStatement(statement)
-      .withOutputProcessor((s) -> {
-        if (s.contains("server started")) {
-          done.setValue(Boolean.TRUE);
-        }
-        if (s.contains("could not start server")) {
-          done.setValue(Boolean.TRUE);
-        }
-        consumer.accept(s);
-      })
-      .runOnNewThread(() -> {
-        done.setValue(Boolean.TRUE);
-      });
+            .withStatement(statement)
+            .withOutputProcessor((s) -> {
+              if (s.contains("server started")) {
+                done.setValue(Boolean.TRUE);
+              }
+              if (s.contains("could not start server")) {
+                done.setValue(Boolean.TRUE);
+              }
+              consumer.accept(s);
+            })
+            .runOnNewThread(() -> {
+              done.setValue(Boolean.TRUE);
+            });
     while (!done.getValue()) {
       try {
         Thread.sleep(500);
@@ -710,6 +708,8 @@ public class DbConnection implements Serializable {
 
   /**
    *
+   * @param postGresBin
+   * @param dataFolder
    */
   public void stopDb(File postGresBin, File dataFolder) {
     this.stopDb(postGresBin, dataFolder, System.out::println);
@@ -717,15 +717,30 @@ public class DbConnection implements Serializable {
 
   /**
    *
+   * @param postGresBin
+   * @param dataFolder
+   * @param consumer
    */
   public void stopDb(File postGresBin, File dataFolder, Consumer<String> consumer) {
     String statement // 
-      = String.format("%s\\pg_ctl.exe stop -D \"%s\"", //
-        postGresBin, dataFolder);
+            = String.format("%s\\pg_ctl.exe stop -D \"%s\"", //
+                    postGresBin, dataFolder);
     new ProcessFacade.Builder()
-      .withStatement(statement)
-      .withOutputProcessor(consumer)
-      .run();
+            .withStatement(statement)
+            .withOutputProcessor(consumer)
+            .run();
+  }
+
+  /**
+   *
+   * @param column
+   * @param table
+   * @return
+   */
+  public int getNextSequence(String column, String table) {
+    String query = String.format("SELECT COALESCE(MAX(%s), 0) as column FROM %s", column, table);
+    int result = this.executeSingleResultQuery(query, "column", Integer.class) + 1;
+    return result;
   }
 
   /**

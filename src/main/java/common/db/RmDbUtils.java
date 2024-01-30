@@ -33,6 +33,7 @@ public class RmDbUtils {
   /**
    *
    * @param conn
+   * @return
    */
   public static EntityManager createEntityManager(DbConnection conn) {
     HashMap<String, String> credentials = new HashMap<>();
@@ -40,14 +41,16 @@ public class RmDbUtils {
     credentials.put("hibernate.connection.username", conn.getConnPool().getUser());
     credentials.put("hibernate.connection.password", conn.getConnPool().getPassword());
     EntityManager result = Persistence //
-      .createEntityManagerFactory("wpls_idaho_power_pu", credentials)
-      .createEntityManager();
+            .createEntityManagerFactory("wpls_idaho_power_pu", credentials)
+            .createEntityManager();
     return result;
   }
 
   /**
    *
    * @param conn
+   * @param schema
+   * @return
    */
   public static EntityManager createEntityManager(DbConnection conn, String schema) {
     HashMap<String, String> credentials = new HashMap<>();
@@ -55,32 +58,33 @@ public class RmDbUtils {
     credentials.put("hibernate.connection.username", conn.getConnPool().getUser());
     credentials.put("hibernate.connection.password", conn.getConnPool().getPassword());
     credentials.put("hibernate.connection.schema", schema);
-    
+
     EntityManager result = Persistence //
-      .createEntityManagerFactory("wpls_idaho_power_pu", credentials)
-      .createEntityManager();
+            .createEntityManagerFactory("wpls_idaho_power_pu", credentials)
+            .createEntityManager();
     return result;
   }
-  
-  
+
   /**
    *
-   * @param conn
+   * @param em
+   * @param schema
+   * @return
    */
   public static EntityManager createEntityManager(EntityManager em, String schema) {
     Map<String, Object> props = em.getEntityManagerFactory().getProperties();
     props.put("hibernate.connection.schema", schema);
     return em;
   }
-  
+
   /**
-   * 
+   *
    * @param resultSet
    * @param name
-   * @return 
+   * @return
    */
   public static Object stringValueDecoded(ResultSet resultSet, String name) {
-    try { 
+    try {
       return URLDecoder.decode(stringValue(resultSet, name), "UTF-8");
     } catch (UnsupportedEncodingException ex) {
       throw new RuntimeException(ex);
@@ -94,8 +98,8 @@ public class RmDbUtils {
   }
 
   /**
-   * Creates a cached entity manager factory based on the persistence unit name. This is
-   * analogous to eager initialization of an entity manger.
+   * Creates a cached entity manager factory based on the persistence unit name.
+   * This is analogous to eager initialization of an entity manger.
    *
    * @param pu
    */
@@ -111,19 +115,19 @@ public class RmDbUtils {
    * @param dbConnection
    */
   public static EntityManager createEntityManager(String pu, // 
-    String connUrl, String user, String password) {
-    
+          String connUrl, String user, String password) {
+
     long curr = System.currentTimeMillis();
     HashMap<String, String> credentials = new HashMap<>();
     credentials.put("hibernate.connection.url", connUrl);
     credentials.put("hibernate.connection.username", user);
     credentials.put("hibernate.connection.password", password);
     EntityManager result = Persistence //
-      .createEntityManagerFactory("wpls_idaho_power_pu", credentials)
-      .createEntityManager();
+            .createEntityManagerFactory("wpls_idaho_power_pu", credentials)
+            .createEntityManager();
     long elapsedMillis = System.currentTimeMillis() - curr;
     System.out.println( //
-      String.format("Created entity manager in '%d' seconds", elapsedMillis));
+            String.format("Created entity manager in '%d' seconds", elapsedMillis));
     return result;
   }
 
@@ -135,14 +139,14 @@ public class RmDbUtils {
    * @return
    */
   public static ZonedDateTime getZonedDateTime( //
-    ResultSet rs, String datetimecolumn, ZoneId zone) {
+          ResultSet rs, String datetimecolumn, ZoneId zone) {
     ZonedDateTime dt;
     try {
       Timestamp timeStamp = rs.getTimestamp(datetimecolumn);
       dt = new Date(timeStamp.getTime()).
-        toInstant().atZone(ZoneId.systemDefault())
-        .toLocalDateTime()
-        .atZone(zone);
+              toInstant().atZone(ZoneId.systemDefault())
+              .toLocalDateTime()
+              .atZone(zone);
     } catch (SQLException ex) {
       throw new RuntimeException(ex);
     }
@@ -158,7 +162,7 @@ public class RmDbUtils {
    * @return
    */
   public static <E extends Quantity> Measure<E> // 
-    doubleValue(ResultSet rs, String col, Unit<E> unit) {
+          doubleValue(ResultSet rs, String col, Unit<E> unit) {
     double aDouble;
     try {
       aDouble = rs.getDouble(col);
@@ -204,10 +208,9 @@ public class RmDbUtils {
 
   /**
    *
-   * @param <E>
    * @param rs
    * @param col
-   * @param unit
+   * @param srid
    * @return
    */
   public static Point pointValue(ResultSet rs, String col, int srid) {
@@ -217,6 +220,27 @@ public class RmDbUtils {
       WKBReader reader = new WKBReader(factory);
       Geometry geometry = reader.read(rs.getBytes(col));
       result = (Point) geometry;
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
+    return result;
+  }
+
+  /**
+   *
+   * @param rs
+   * @param col
+   * @param srid
+   * @return
+   */
+  public static Geometry geometryValue(ResultSet rs, String col, int srid) {
+    Geometry result;
+    try {
+      GeometryFactory factory = new GeometryFactory(new PrecisionModel(PrecisionModel.FLOATING), srid);
+      WKBReader reader = new WKBReader(factory);
+      Geometry geometry = reader.read(rs.getBytes(col));
+      
+      result = geometry;
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
@@ -248,7 +272,7 @@ public class RmDbUtils {
    * @return
    */
   public static <E extends Quantity> Measure< E> // 
-    intValue(ResultSet rs, String col, Unit<E> unit) {
+          intValue(ResultSet rs, String col, Unit<E> unit) {
     double aDouble;
     try {
       aDouble = new Integer(rs.getInt(col)).doubleValue();
@@ -266,8 +290,7 @@ public class RmDbUtils {
       throw new RuntimeException(ex);
     }
   }
-  
-  
+
   public static String stringValue(ResultSet rs, String col) {
     try {
       return rs.getString(col);
