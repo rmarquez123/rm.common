@@ -16,6 +16,7 @@ import javax.measure.unit.Unit;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import org.apache.commons.lang3.Range;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
@@ -89,6 +90,11 @@ public class RmDbUtils {
     } catch (UnsupportedEncodingException ex) {
       throw new RuntimeException(ex);
     }
+  }
+
+  public static Range<Double> doubleValueRange(ResultSet rs, String lowerleft, String upperright) {
+    // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    throw new UnsupportedOperationException("Not supported yet.");
   }
 
   /**
