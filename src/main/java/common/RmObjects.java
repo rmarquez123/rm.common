@@ -3,6 +3,10 @@ package common;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -160,7 +164,7 @@ public class RmObjects {
   }
 
   public static boolean createDirectoryIfDoesNotExist(File dir) {
-    
+
     if (!dir.exists()) {
       String os = System.getProperty("os.name").toLowerCase();
       if (os.contains("win")) {
@@ -178,14 +182,54 @@ public class RmObjects {
     boolean result = dir.exists() && dir.isDirectory();
     return result;
   }
-  
+
   /**
-   * 
-   * @return 
+   *
+   * @return
    */
   public static boolean isWindows() {
     String os = System.getProperty("os.name").toLowerCase();
     return os.contains("win");
+  }
+
+  /**
+   *
+   * @param datetime
+   * @param format
+   * @param zoneId
+   *
+   * @return
+   */
+  public static String format(ZonedDateTime datetime, String format, ZoneId zoneId) {
+    String result = datetime.toOffsetDateTime()
+            .atZoneSameInstant(zoneId)
+            .format(DateTimeFormatter.ofPattern(format));
+    return result;
+  }
+  
+  /**
+   *
+   * @param datetime
+   * @param format
+   *
+   * @return
+   */
+  public static String formatUtc(ZonedDateTime datetime, String format) {
+    ZoneId zoneId = ZoneId.of("UTC");
+    String result = format(datetime, format, zoneId); 
+    return result;
+  }
+  
+  /**
+   * 
+   * @param format
+   * @param datetimetext
+   * @return 
+   */
+  public static ZonedDateTime dateTimeOfInUtc(String format, String datetimetext) {
+    LocalDateTime datetime = LocalDateTime.parse(datetimetext, DateTimeFormatter.ofPattern(format));
+    ZonedDateTime result = ZonedDateTime.of(datetime, ZoneId.of("UTC")); 
+    return result;
   }
 
 }

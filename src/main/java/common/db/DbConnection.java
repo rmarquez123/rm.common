@@ -25,9 +25,6 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableObject;
 
@@ -35,8 +32,6 @@ import org.apache.commons.lang3.mutable.MutableObject;
  *
  * @author rmarquez
  */
-@XmlRootElement(name = "histdlr")
-@XmlAccessorType(XmlAccessType.PROPERTY)
 public class DbConnection implements Serializable {
 
   private static final int DEFAULT_FETCHSIZE = 0;
@@ -577,20 +572,20 @@ public class DbConnection implements Serializable {
 
   /**
    *
-   * @param query
+   * @param statement
    * @return
    */
-  public int executeStatement(String query) {
+  public int executeStatement(String statement) {
     int result;
     try (Connection conn = this.getConnection()) {
-      PreparedStatement statement;
+      PreparedStatement preparedStatement;
       try {
-        statement = conn.prepareStatement(query);
+        preparedStatement = conn.prepareStatement(statement);
       } catch (SQLException ex) {
         throw new RuntimeException(ex);
       }
       try {
-        result = statement.executeUpdate();
+        result = preparedStatement.executeUpdate();
       } catch (SQLException ex) {
         throw new RuntimeException(ex);
       }
@@ -643,7 +638,9 @@ public class DbConnection implements Serializable {
 
   /**
    *
+   * @param dbBinDir
    * @param schemaSqlFile
+   * @param outputConsumer
    */
   public void runSqlFile(File dbBinDir, File schemaSqlFile, Consumer<String> outputConsumer) {
     String statement // 
@@ -740,6 +737,20 @@ public class DbConnection implements Serializable {
   public int getNextSequence(String column, String table) {
     String query = String.format("SELECT COALESCE(MAX(%s), 0) as column FROM %s", column, table);
     int result = this.executeSingleResultQuery(query, "column", Integer.class) + 1;
+    return result;
+  }
+  
+  /**
+   * 
+   * @param <T>
+   * @param column
+   * @param table
+   * @param clazz
+   * @return 
+   */
+  public <T extends Number> T getLastSequence(String column, String table, Class<T> clazz) {
+    String query = String.format("SELECT COALESCE(MAX(%s), 0) as column FROM %s", column, table);
+    T result = this.executeSingleResultQuery(query, "column", clazz);
     return result;
   }
 
