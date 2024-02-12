@@ -232,4 +232,17 @@ public class RmObjects {
     return result;
   }
 
+  /**
+   * 
+   * @param datetime
+   * @return 
+   */
+  public static String formatUtcForDbStatement(ZonedDateTime datetime) {
+    String format = "yyyy/MM/dd HH:mm"; 
+    String dbformat = "yyyy/mm/dd HH24:mi";
+    String datetimetext = formatUtc(datetime, format);
+    String result = String.format("to_timestamp('%s', '%s')", //
+            datetimetext, dbformat); 
+    return result;
+  }
 }

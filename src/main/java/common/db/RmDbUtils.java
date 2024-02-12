@@ -92,9 +92,18 @@ public class RmDbUtils {
     }
   }
 
+  /**
+   *
+   * @param rs
+   * @param lowerleft
+   * @param upperright
+   * @return
+   */
   public static Range<Double> doubleValueRange(ResultSet rs, String lowerleft, String upperright) {
-    // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    throw new UnsupportedOperationException("Not supported yet.");
+    double min = RmDbUtils.doubleValue(rs, lowerleft);
+    double max = RmDbUtils.doubleValue(rs, upperright);
+    Range<Double> result = Range.between(min, max);
+    return result;
   }
 
   /**
@@ -118,7 +127,11 @@ public class RmDbUtils {
 
   /**
    *
-   * @param dbConnection
+   * @param pu
+   * @param connUrl
+   * @param user
+   * @param password
+   * @return
    */
   public static EntityManager createEntityManager(String pu, // 
           String connUrl, String user, String password) {
@@ -181,7 +194,8 @@ public class RmDbUtils {
 
   /**
    *
-   * @param raster_id
+   * @param rs
+   * @param col
    * @return
    */
   public static long longValue(ResultSet rs, String col) {
@@ -245,7 +259,7 @@ public class RmDbUtils {
       GeometryFactory factory = new GeometryFactory(new PrecisionModel(PrecisionModel.FLOATING), srid);
       WKBReader reader = new WKBReader(factory);
       Geometry geometry = reader.read(rs.getBytes(col));
-      
+
       result = geometry;
     } catch (Exception ex) {
       throw new RuntimeException(ex);
