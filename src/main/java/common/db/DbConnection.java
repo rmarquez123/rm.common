@@ -130,7 +130,7 @@ public class DbConnection implements Serializable {
    * @param mapper
    * @return
    */
-  public <T> T executeSingleResultQuery(String sql, Function<ResultSet, T> mapper) {
+  public <T> T executeSingleResultQuery(String sql, ResultMapper<T> mapper) {
     List<T> list = this.executeQuery(sql, mapper);
     if (list.size() > 1) {
       throw new RuntimeException("Query returned more than 1 result.");
@@ -148,7 +148,7 @@ public class DbConnection implements Serializable {
    * @return
    */
   public <T> T executeSingleResultQuery(String sql, String column, Class<T> clazz) {
-    List<T> list = this.executeQuery(sql, (rs) -> {
+    List<T> list = this.executeQuery(sql, (ResultSet rs) -> {
       try {
         return rs.getObject(column, clazz);
       } catch (SQLException ex) {
@@ -161,18 +161,18 @@ public class DbConnection implements Serializable {
     T result = list.isEmpty() ? null : list.get(0);
     return result;
   }
-
+  
   /**
-   *
+   * 
    * @param <T>
    * @param sql
    * @param mapper
-   * @return
+   * @return 
    */
-  public <T> List<T> executeQuery(String sql, Function<ResultSet, T> mapper) {
+  public <T> List<T> executeQuery(String sql, ResultMapper<T> mapper) {
     List<T> result = new ArrayList<>();
     this.executeQuery(sql, (rs) -> {
-      result.add(mapper.apply(rs));
+      result.add(mapper.map(rs));
     });
     return result;
   }

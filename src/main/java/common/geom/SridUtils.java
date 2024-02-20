@@ -17,14 +17,13 @@ public class SridUtils {
   private final static Map<String, CoordinateReferenceSystem> cache = new HashMap<>();
   
   private SridUtils() {
-    
   }
-  
+
   /**
-   * 
+   *
    * @param geometry
    * @param targetSrid
-   * @return 
+   * @return
    */
   public static synchronized Geometry transform(Geometry geometry, int targetSrid) {
     String sourceCRSCode = "EPSG:" + geometry.getSRID();
@@ -36,23 +35,23 @@ public class SridUtils {
     result.setSRID(targetSrid);
     return result;
   }
-    
+
   /**
-   * 
+   *
    * @param code
-   * @return 
+   * @return
    */
   private static synchronized CoordinateReferenceSystem getCrs(String code) {
     if (!cache.containsKey(code)) {
       CoordinateReferenceSystem result = crsFactory.createFromName(code);
-      cache.put(code, result); 
-    } 
+      cache.put(code, result);
+    }
     CoordinateReferenceSystem result = cache.get(code);
     return result;
   }
-  
+
   /**
-   * 
+   *
    */
   public static void init() {
     try {
@@ -88,13 +87,21 @@ public class SridUtils {
       throw new RuntimeException("Invalid geometry");
     }
   }
-
-  private static LineString transformLineString(LineString lineString, CoordinateTransform transform, GeometryFactory factory) {
+  
+  /**
+   * 
+   * @param lineString
+   * @param transform
+   * @param factory
+   * @return 
+   */
+  private static LineString transformLineString(LineString lineString, //
+          CoordinateTransform transform, GeometryFactory factory) {
     Coordinate[] sourceCoordinates = lineString.getCoordinates();
     Coordinate[] targetCoordinates = new Coordinate[sourceCoordinates.length];
-
     for (int i = 0; i < sourceCoordinates.length; i++) {
-      ProjCoordinate sourceCoord = new ProjCoordinate(sourceCoordinates[i].x, sourceCoordinates[i].y);
+      ProjCoordinate sourceCoord = new ProjCoordinate( //
+              sourceCoordinates[i].x, sourceCoordinates[i].y);
       ProjCoordinate targetCoord = new ProjCoordinate();
       transform.transform(sourceCoord, targetCoord);
       targetCoordinates[i] = new Coordinate(targetCoord.x, targetCoord.y);
@@ -103,18 +110,51 @@ public class SridUtils {
     return factory.createLineString(targetCoordinates);
   }
 
+  /**
+   *
+   * @param polygon
+   * @param transform
+   * @param factory
+   * @return
+   */
   private static Polygon transformPolygon(Polygon polygon, CoordinateTransform transform, GeometryFactory factory) {
-    LinearRing shell = (LinearRing) transformLineString(polygon.getExteriorRing(), transform, factory);
+    LinearRing shell = transformLineRing(polygon.getExteriorRing(), transform, factory);
     LinearRing[] holes = new LinearRing[polygon.getNumInteriorRing()];
-
     for (int i = 0; i < polygon.getNumInteriorRing(); i++) {
-      holes[i] = (LinearRing) transformLineString((LineString) polygon.getInteriorRingN(i), transform, factory);
+      holes[i] = transformLineRing(polygon.getInteriorRingN(i), transform, factory);
     }
-
     return factory.createPolygon(shell, holes);
   }
   
-  private static Point transformPoint(Point point, CoordinateTransform transform, GeometryFactory factory) {
+  /**
+   * 
+   * @param exteriorRing
+   * @param transform
+   * @param factory
+   * @return 
+   */
+  private static LinearRing transformLineRing(LinearRing exteriorRing, // 
+          CoordinateTransform transform, GeometryFactory factory) {
+    Coordinate[] sourceCoordinates = exteriorRing.getCoordinates();
+    Coordinate[] targetCoordinates = new Coordinate[sourceCoordinates.length];
+    for (int i = 0; i < sourceCoordinates.length; i++) {
+      ProjCoordinate sourceCoord = new ProjCoordinate(sourceCoordinates[i].x, sourceCoordinates[i].y);
+      ProjCoordinate targetCoord = new ProjCoordinate();
+      transform.transform(sourceCoord, targetCoord);
+      targetCoordinates[i] = new Coordinate(targetCoord.x, targetCoord.y);
+    }
+    return factory.createLinearRing(targetCoordinates);
+  }
+
+  /**
+   *
+   * @param point
+   * @param transform
+   * @param factory
+   * @return
+   */
+  private static Point transformPoint(Point point, // 
+          CoordinateTransform transform, GeometryFactory factory) {
     ProjCoordinate sourceCoord = new ProjCoordinate(point.getX(), point.getY());
     ProjCoordinate targetCoord = new ProjCoordinate();
     transform.transform(sourceCoord, targetCoord);
