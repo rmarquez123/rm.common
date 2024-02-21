@@ -12,6 +12,10 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.PrecisionModel;
 
 /**
  *
@@ -243,6 +247,20 @@ public class RmObjects {
     String datetimetext = formatUtc(datetime, format);
     String result = String.format("to_timestamp('%s', '%s')", //
             datetimetext, dbformat); 
+    return result;
+  }
+
+  /**
+   * 
+   * @param lat
+   * @param lon
+   * @return 
+   */
+  public static Point pointWgs84(double lat, double lon) {
+    PrecisionModel precisionModel = new PrecisionModel(PrecisionModel.FLOATING);
+    GeometryFactory factory = new GeometryFactory(precisionModel, 4326);
+    Coordinate coordinate = new Coordinate(lon, lat); 
+    Point result = factory.createPoint(coordinate);
     return result;
   }
 }
