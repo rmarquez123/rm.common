@@ -263,4 +263,30 @@ public class RmObjects {
     Point result = factory.createPoint(coordinate);
     return result;
   }
+  
+  /**
+   * 
+   * @return 
+   */
+  public static GeometryFactory getWgs84Factory() {
+    int wgs = 4326;
+    PrecisionModel model = new PrecisionModel(PrecisionModel.FLOATING);
+    GeometryFactory factory = new GeometryFactory(model, wgs);
+    return factory;
+  }
+
+  /**
+   * 
+   * @param factory
+   * @param x
+   * @param y
+   * @return 
+   */
+  public static Point createPoint(GeometryFactory factory, double x, double y) {
+    Coordinate coordinate = new Coordinate(x, y); 
+    Point result = factory.createPoint(coordinate); 
+    return result; 
+  }
+    
+    
 }

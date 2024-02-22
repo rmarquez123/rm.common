@@ -21,17 +21,18 @@ public class SridUtils {
 
   /**
    *
+   * @param <T>
    * @param geometry
    * @param targetSrid
    * @return
    */
-  public static synchronized Geometry transform(Geometry geometry, int targetSrid) {
+  public static synchronized <T extends Geometry> T  transform(T geometry, int targetSrid) {
     String sourceCRSCode = "EPSG:" + geometry.getSRID();
     String targetCRSCode = "EPSG:" + targetSrid;
     CoordinateReferenceSystem sourceCRS = getCrs(sourceCRSCode);
     CoordinateReferenceSystem targetCRS = getCrs(targetCRSCode);
     CoordinateTransform transform = ctFactory.createTransform(sourceCRS, targetCRS);
-    Geometry result = transformGeometry(geometry, transform);
+    T result = transformGeometry(geometry, transform);
     result.setSRID(targetSrid);
     return result;
   }
@@ -73,16 +74,16 @@ public class SridUtils {
    * @param transform
    * @return
    */
-  private static Geometry transformGeometry(Geometry geometry, CoordinateTransform transform) {
+  private static <T extends Geometry> T transformGeometry(T geometry, CoordinateTransform transform) {
     PrecisionModel precisionModel = new PrecisionModel(PrecisionModel.FLOATING);
     int srid = Integer.parseInt(transform.getTargetCRS().getName().replace("EPSG:", ""));
     GeometryFactory factory = new GeometryFactory(precisionModel, srid);
     if (geometry instanceof Point) {
-      return transformPoint((Point) geometry, transform, factory);
+      return (T) transformPoint((Point) geometry, transform, factory);
     } else if (geometry instanceof LineString) {
-      return transformLineString((LineString) geometry, transform, factory);
+      return (T) transformLineString((LineString) geometry, transform, factory);
     } else if (geometry instanceof Polygon) {
-      return transformPolygon((Polygon) geometry, transform, factory);
+      return (T) transformPolygon((Polygon) geometry, transform, factory);
     } else {
       throw new RuntimeException("Invalid geometry");
     }
