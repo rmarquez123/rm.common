@@ -34,7 +34,8 @@ public class RmTimer {
    */
   public void endAndPrint() {
     long endTime = System.currentTimeMillis();
-    System.out.println("Elapsed time : " + (endTime - this.startTime) / 1000 + "s");
+    double elapsedTime = ((double) endTime - (double) this.startTime) / 1000d;
+    System.out.println("Elapsed time : " + elapsedTime + "s");
     this.startTime = endTime;
   }
   /**
@@ -42,7 +43,7 @@ public class RmTimer {
    */
   public void endAndPrintInMillis() {
     long endTime = System.currentTimeMillis();
-    System.out.println("Elapsed time : " + (endTime - this.startTime) + "s");
+    System.out.println("Elapsed time : " + (endTime - this.startTime) + "ms");
     this.startTime = endTime;
   }
   
