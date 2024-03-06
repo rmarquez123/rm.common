@@ -15,6 +15,7 @@ import org.apache.commons.math3.util.Pair;
  * user interfaces, and analysis.
  *
  * @author Ricardo Marquez
+ * @param <TS>
  */
 public interface TimeSeries<TS extends TimeStepValue<?>> extends Iterable<TS> {
 
@@ -42,7 +43,7 @@ public interface TimeSeries<TS extends TimeStepValue<?>> extends Iterable<TS> {
   /**
    * *
    *
-   * @param timeStepValue
+   * @param zonedDateTime
    * @return
    */
   public boolean contains(ZonedDateTime zonedDateTime);
@@ -107,10 +108,9 @@ public interface TimeSeries<TS extends TimeStepValue<?>> extends Iterable<TS> {
   /**
    *
    * @param timeInterval
+   * @param averaging
    * @return
    */
   public TimeSeries<TS> average(TemporalAmount timeInterval, 
     Function<Pair<ZonedDateTime, Set<TS>>, TS> averaging);
-  
-  
 }
