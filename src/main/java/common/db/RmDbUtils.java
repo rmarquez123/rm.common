@@ -16,6 +16,7 @@ import javax.measure.unit.Unit;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.Range;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -45,6 +46,38 @@ public class RmDbUtils {
             .createEntityManagerFactory("wpls_idaho_power_pu", credentials)
             .createEntityManager();
     return result;
+  }
+
+  /**
+   *
+   * @param rs
+   * @param column
+   * @return
+   */
+  public static double[] doubleArray(ResultSet rs, String column) {
+    try {
+      Double[] arr = (Double[]) rs.getArray(1).getArray();
+      double[] result = ArrayUtils.toPrimitive(arr);
+      return result;
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
+  }
+  
+  /**
+   * 
+   * @param rs
+   * @param column
+   * @return 
+   */
+  public static int[] intArray(ResultSet rs, String column) {
+    try {
+      Integer[] arr = (Integer[]) rs.getArray(column).getArray();
+      int[] result = ArrayUtils.toPrimitive(arr);
+      return result;
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
   }
 
   /**
