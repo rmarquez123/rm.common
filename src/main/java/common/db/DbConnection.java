@@ -135,7 +135,7 @@ public class DbConnection implements Serializable {
     if (list.size() > 1) {
       throw new RuntimeException("Query returned more than 1 result.");
     }
-    T result = list.stream().findFirst().orElse(null);
+    T result = list.get(0);
     return result;
   }
 

@@ -10,6 +10,7 @@ import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import javax.measure.Measure;
 import javax.measure.quantity.Quantity;
 import javax.measure.unit.Unit;
@@ -63,12 +64,12 @@ public class RmDbUtils {
       throw new RuntimeException(ex);
     }
   }
-  
+
   /**
-   * 
+   *
    * @param rs
    * @param column
-   * @return 
+   * @return
    */
   public static int[] intArray(ResultSet rs, String column) {
     try {
@@ -222,6 +223,32 @@ public class RmDbUtils {
       throw new RuntimeException(ex);
     }
     Measure< E> result = Measure.valueOf(aDouble, unit);
+    return result;
+  }
+
+  /**
+   * *
+   *
+   * @param <E>
+   * @param rs
+   * @param col
+   * @param unit
+   * @return
+   */
+  public static <E extends Quantity> Optional<Measure<E>> // 
+          doubleValueOpt(ResultSet rs, String col, Unit<E> unit) {
+    Optional<Measure<E>> result;
+    try {
+      if (rs.findColumn(col) >= 1) {
+        double aDouble = rs.getDouble(col);
+        Measure< E> measure = Measure.valueOf(aDouble, unit);
+        result = Optional.of(measure);
+      } else {
+        result = Optional.empty();
+      }
+    } catch (SQLException ex) {
+      throw new RuntimeException(ex);
+    }
     return result;
   }
 
