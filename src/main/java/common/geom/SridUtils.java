@@ -80,6 +80,9 @@ public class SridUtils {
     GeometryFactory factory = new GeometryFactory(precisionModel, srid);
     if (geometry instanceof Point) {
       return (T) transformPoint((Point) geometry, transform, factory);
+    
+    } else if (geometry instanceof LinearRing) {
+      return (T) transformLineRing((LinearRing) geometry, transform, factory);
     } else if (geometry instanceof LineString) {
       return (T) transformLineString((LineString) geometry, transform, factory);
     } else if (geometry instanceof Polygon) {
