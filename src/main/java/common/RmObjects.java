@@ -210,7 +210,7 @@ public class RmObjects {
             .format(DateTimeFormatter.ofPattern(format));
     return result;
   }
-  
+
   /**
    *
    * @param datetime
@@ -220,53 +220,53 @@ public class RmObjects {
    */
   public static String formatUtc(ZonedDateTime datetime, String format) {
     ZoneId zoneId = ZoneId.of("UTC");
-    String result = format(datetime, format, zoneId); 
+    String result = format(datetime, format, zoneId);
     return result;
   }
-  
+
   /**
-   * 
+   *
    * @param format
    * @param datetimetext
-   * @return 
+   * @return
    */
   public static ZonedDateTime dateTimeOfInUtc(String format, String datetimetext) {
     LocalDateTime datetime = LocalDateTime.parse(datetimetext, DateTimeFormatter.ofPattern(format));
-    ZonedDateTime result = ZonedDateTime.of(datetime, ZoneId.of("UTC")); 
+    ZonedDateTime result = ZonedDateTime.of(datetime, ZoneId.of("UTC"));
     return result;
   }
 
   /**
-   * 
+   *
    * @param datetime
-   * @return 
+   * @return
    */
   public static String formatUtcForDbStatement(ZonedDateTime datetime) {
-    String format = "yyyy/MM/dd HH:mm"; 
+    String format = "yyyy/MM/dd HH:mm";
     String dbformat = "yyyy/mm/dd HH24:mi";
     String datetimetext = formatUtc(datetime, format);
     String result = String.format("to_timestamp('%s', '%s')", //
-            datetimetext, dbformat); 
+            datetimetext, dbformat);
     return result;
   }
 
   /**
-   * 
+   *
    * @param lat
    * @param lon
-   * @return 
+   * @return
    */
   public static Point pointWgs84(double lat, double lon) {
     PrecisionModel precisionModel = new PrecisionModel(PrecisionModel.FLOATING);
     GeometryFactory factory = new GeometryFactory(precisionModel, 4326);
-    Coordinate coordinate = new Coordinate(lon, lat); 
+    Coordinate coordinate = new Coordinate(lon, lat);
     Point result = factory.createPoint(coordinate);
     return result;
   }
-  
+
   /**
-   * 
-   * @return 
+   *
+   * @return
    */
   public static GeometryFactory getWgs84Factory() {
     int wgs = 4326;
@@ -276,17 +276,27 @@ public class RmObjects {
   }
 
   /**
-   * 
+   *
    * @param factory
    * @param x
    * @param y
-   * @return 
+   * @return
    */
   public static Point createPoint(GeometryFactory factory, double x, double y) {
-    Coordinate coordinate = new Coordinate(x, y); 
-    Point result = factory.createPoint(coordinate); 
-    return result; 
+    Coordinate coordinate = new Coordinate(x, y);
+    Point result = factory.createPoint(coordinate);
+    return result;
   }
-    
-    
+
+  /**
+   * 
+   * @param srid
+   * @return 
+   */
+  public static GeometryFactory getGeometryFactory(int srid) {
+    PrecisionModel model = new PrecisionModel(PrecisionModel.FLOATING);
+    GeometryFactory factory = new GeometryFactory(model, srid);
+    return factory;
+  }
+
 }

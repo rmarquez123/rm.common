@@ -57,7 +57,7 @@ public class RmDbUtils {
    */
   public static double[] doubleArray(ResultSet rs, String column) {
     try {
-      Double[] arr = (Double[]) rs.getArray(1).getArray();
+      Double[] arr = (Double[]) rs.getArray(column).getArray();
       double[] result = ArrayUtils.toPrimitive(arr);
       return result;
     } catch (Exception ex) {
