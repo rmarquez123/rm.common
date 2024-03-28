@@ -80,6 +80,22 @@ public class RmDbUtils {
       throw new RuntimeException(ex);
     }
   }
+  
+  /**
+   * 
+   * @param rs
+   * @param column
+   * @return 
+   */
+  public static long[] longArray(ResultSet rs, String column) {
+    try {
+      Long[] arr = (Long[]) rs.getArray(column).getArray();
+      long[] result = ArrayUtils.toPrimitive(arr);
+      return result;
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
+  }
 
   /**
    *
@@ -270,10 +286,8 @@ public class RmDbUtils {
 
   /**
    *
-   * @param <E>
    * @param rs
    * @param col
-   * @param unit
    * @return
    */
   public static double doubleValue(ResultSet rs, String col) {

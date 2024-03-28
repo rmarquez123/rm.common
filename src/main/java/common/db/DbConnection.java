@@ -150,7 +150,7 @@ public class DbConnection implements Serializable {
   public <T> T executeSingleResultQuery(String sql, String column, Class<T> clazz) {
     List<T> list = this.executeQuery(sql, (ResultSet rs) -> {
       try {
-        return rs.getObject(column, clazz);
+        return (T) rs.getObject(column);
       } catch (SQLException ex) {
         throw new RuntimeException(ex);
       }
