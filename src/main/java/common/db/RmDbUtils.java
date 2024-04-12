@@ -212,6 +212,9 @@ public class RmDbUtils {
     ZonedDateTime dt;
     try {
       Timestamp timeStamp = rs.getTimestamp(datetimecolumn);
+      if (timeStamp == null) {
+        return null;
+      }
       dt = new Date(timeStamp.getTime()).
               toInstant().atZone(ZoneId.systemDefault())
               .toLocalDateTime()
