@@ -1,5 +1,6 @@
 package common.geom;
 
+import common.RmExceptions;
 import java.util.HashMap;
 import java.util.Map;
 import org.locationtech.jts.geom.*;
@@ -27,6 +28,9 @@ public class SridUtils {
    * @return
    */
   public static synchronized <T extends Geometry> T  transform(T geometry, int targetSrid) {
+    if (geometry.getSRID() == targetSrid) {
+      return geometry;
+    }
     String sourceCRSCode = "EPSG:" + geometry.getSRID();
     String targetCRSCode = "EPSG:" + targetSrid;
     CoordinateReferenceSystem sourceCRS = getCrs(sourceCRSCode);
@@ -63,9 +67,20 @@ public class SridUtils {
       throw new RuntimeException("Error initializing SridUtils", ex);
     }
   }
-
+  
+  /**
+   * 
+   * @param p
+   * @param targetSrid
+   * @return 
+   */
   public static Point transform(Point p, int targetSrid) {
-    return (Point) transform((Geometry) p, targetSrid);
+    Geometry name = (Geometry) p;
+    if (p.getSRID() == 0) {
+      throw RmExceptions.create("Invalid SRID");
+    }
+    Point result = (Point) transform(name, targetSrid);
+    return result;
   }
 
   /**
