@@ -171,7 +171,7 @@ public class DbConnection implements Serializable {
    */
   public <T> List<T> executeQuery(String sql, ResultMapper<T> mapper) {
     List<T> result = new ArrayList<>();
-    this.executeQuery(sql, (rs) -> {
+    this.executeQuery(sql, (rs) -> {  
       result.add(mapper.map(rs));
     });
     return result;
