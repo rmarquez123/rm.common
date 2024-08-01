@@ -11,7 +11,6 @@
       <artifactId>HikariCP</artifactId>
       <version>3.4.0</version>
     </dependency>
-
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-math3</artifactId>
@@ -96,6 +95,20 @@
       <version>0.9.4</version>
       <type>jar</type>
     </dependency>
+    
+    <dependency>
+      <groupId>org.locationtech.proj4j</groupId>
+      <artifactId>proj4j</artifactId>
+      <version>1.2.3</version>
+      <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>org.locationtech.proj4j</groupId>
+      <artifactId>proj4j-epsg</artifactId>
+      <version>1.2.3</version>
+      <type>jar</type>
+    </dependency>
+    
   </dependencies>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -104,4 +117,17 @@
     <javafx.version>16</javafx.version>
     <hibernate.version>5.6.0.Final</hibernate.version>
   </properties>
+  
+
+  
+  <distributionManagement>
+    <repository>
+      <id>nexus-releases</id>
+      <url>https://maven.pitchaerosandbox.com/repository/maven-releases/</url>
+    </repository>
+    <snapshotRepository>
+      <id>nexus-snapshots</id>
+      <url>https://maven.pitchaerosandbox.com/repository/maven-snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
 </project>

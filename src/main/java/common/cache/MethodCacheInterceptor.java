@@ -17,7 +17,7 @@ public class MethodCacheInterceptor implements InvocationHandler {
   private final Object t;
   private final List<Method> methods;
   private final Map<MethodAndArgs, Object> cache = new HashMap<>();
-  
+    
   public MethodCacheInterceptor(Object t, List<Method> method) {
     this.t = t;
     this.methods = method;

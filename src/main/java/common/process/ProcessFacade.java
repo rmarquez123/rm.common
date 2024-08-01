@@ -154,7 +154,7 @@ public class ProcessFacade {
     private Consumer<String> outputProcessor;
     private File rundirectory;
     private Map<String, String> envars = new HashMap<>();
-    private Set<File> paths = new HashSet<>();
+    private final Set<File> paths = new HashSet<>();
 
     public Builder withStatement(String statement) {
       this.statement = statement;
@@ -226,6 +226,7 @@ public class ProcessFacade {
     /**
      *
      * @param onDone
+     * @return 
      */
     public Process runOnNewThread(Runnable onDone) {
       return this.build().runOnNewThread(onDone);

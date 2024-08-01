@@ -7,8 +7,8 @@ import java.time.ZonedDateTime;
  * values at time steps. This class holds a reference to the actual time step and the
  * value object with generic parameter <code>R</code>.
  *
- * @param R the type of record the time step value holds.
  * @author Ricardo Marquez
+ * @param <R>
  *
  */
 public interface TimeStepValue<R> extends Comparable<TimeStepValue<R>> {
