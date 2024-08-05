@@ -182,7 +182,6 @@ public class RmHttpReader {
           .collect(Collectors.joining("\n"));
         throw new RuntimeException(error);
       }
-      System.out.println("code = " + code);
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }

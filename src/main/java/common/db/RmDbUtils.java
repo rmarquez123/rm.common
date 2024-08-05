@@ -395,6 +395,14 @@ public class RmDbUtils {
       throw new RuntimeException(ex);
     }
   }
+  
+  public static String[] stringValueArray(ResultSet rs, String col) {
+    try {
+      return (String[]) rs.getArray(col).getArray();
+    } catch (SQLException ex) {
+      throw new RuntimeException(ex);
+    }
+  }
 
   public static ZoneId zoneIdValue(ResultSet rs, String col) {
     try {

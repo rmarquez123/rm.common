@@ -11,6 +11,9 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.measure.Measure;
+import javax.measure.quantity.Quantity;
+import javax.measure.unit.Unit;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -289,14 +292,42 @@ public class RmObjects {
   }
 
   /**
-   * 
+   *
    * @param srid
-   * @return 
+   * @return
    */
   public static GeometryFactory getGeometryFactory(int srid) {
     PrecisionModel model = new PrecisionModel(PrecisionModel.FLOATING);
     GeometryFactory factory = new GeometryFactory(model, srid);
     return factory;
+  }
+  
+  /**
+   * 
+   * @param <T>
+   * @param a
+   * @param b
+   * @param unit
+   * @return 
+   */
+  public static <T extends Quantity> Measure<T> add(Measure<T> a, Measure<T> b, Unit<T> unit) {
+    double value = a.doubleValue(unit) + b.doubleValue(unit); 
+    Measure<T> result = Measure.valueOf(value, unit);
+    return result;
+  }
+  
+  /**
+   * 
+   * @param <T>
+   * @param a
+   * @param b
+   * @param unit
+   * @return 
+   */
+  public static <T extends Quantity> Measure<T> subtract(Measure<T> a, Measure<T> b, Unit<T> unit) {
+    double value = a.doubleValue(unit) - b.doubleValue(unit); 
+    Measure<T> result = Measure.valueOf(value, unit);
+    return result;
   }
 
 }

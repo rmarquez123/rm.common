@@ -575,7 +575,7 @@ public class DbConnection implements Serializable {
    * @param statement
    * @return
    */
-  public int executeStatement(String statement) {
+  public synchronized int executeStatement(String statement) {
     int result;
     try (Connection conn = this.getConnection()) {
       PreparedStatement preparedStatement;
