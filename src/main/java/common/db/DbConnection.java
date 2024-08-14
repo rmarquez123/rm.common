@@ -93,10 +93,11 @@ public class DbConnection implements Serializable {
     String valuePlaceHolders = StringUtils.repeat("?", separator, values.size());
     String sql = String.format("insert into %s (%s) values (%s)",
             new Object[]{table, columns, valuePlaceHolders});
-    Connection conn = this.getConnection();
     int effectedRows;
+    Connection conn = this.getConnection();
+    PreparedStatement statement;
     try {
-      PreparedStatement statement = conn.prepareStatement(sql);
+      statement = conn.prepareStatement(sql);
       this.setParamValues(values, statement);
       effectedRows = statement.executeUpdate();
     } catch (SQLException ex) {
@@ -183,7 +184,9 @@ public class DbConnection implements Serializable {
    * @param consumer
    */
   public void executeQuery(String sql, Consumer<ResultSet> consumer) {
+    
     this.executeQuery(sql, DEFAULT_FETCHSIZE, consumer);
+    
   }
 
   /**
@@ -569,7 +572,8 @@ public class DbConnection implements Serializable {
             .createDbConnection();
     return createDbConnection;
   }
-
+  
+  
   /**
    *
    * @param statement

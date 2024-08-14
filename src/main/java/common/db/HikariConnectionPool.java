@@ -21,6 +21,11 @@ public class HikariConnectionPool extends DefaultConnectionPool {
     config.setJdbcUrl(jdbcUrl);
     config.setUsername(user);
     config.setPassword(password);
+    config.setMaximumPoolSize(80);
+    config.setLeakDetectionThreshold(2000); // 2 seconds
+    config.setConnectionTimeout(30000); // 30 seconds
+    config.setIdleTimeout(600000); // 10 minutes
+    config.setMaxLifetime(600000); // 10 minutes
     config.setDriverClassName("org.postgresql.Driver");
     this.dataSource = new HikariDataSource(config);
   }
@@ -46,16 +51,17 @@ public class HikariConnectionPool extends DefaultConnectionPool {
   public void close() throws IOException {
     this.dataSource.close();
   }
-  
+
   /**
-   * 
+   *
    */
   public static class PoolBuilder {
+
     private String url;
-    private Integer port; 
-    private String databaseName; 
-    private String user; 
-    private String password; 
+    private Integer port;
+    private String databaseName;
+    private String user;
+    private String password;
 
     public PoolBuilder setUrl(String url) {
       this.url = url;
@@ -81,10 +87,10 @@ public class HikariConnectionPool extends DefaultConnectionPool {
       this.password = password;
       return this;
     }
-    
+
     public HikariConnectionPool build() {
-      return new HikariConnectionPool(url, port, databaseName, user, password); 
+      return new HikariConnectionPool(url, port, databaseName, user, password);
     }
-  } 
+  }
 
 }
