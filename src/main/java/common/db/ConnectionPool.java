@@ -11,8 +11,17 @@ import java.util.Properties;
 public interface ConnectionPool extends Closeable {
 
   public Connection getConnection();
+  
+  public Connection getConnection(Application application);
 
   public String getConnectionUrl();
+  
+  /**
+   * 
+   * @param application
+   * @return 
+   */
+  public String getConnectionUrl(Application application);
 
   public DbConnection parentDb();
 

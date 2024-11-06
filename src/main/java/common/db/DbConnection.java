@@ -184,19 +184,45 @@ public class DbConnection implements Serializable {
    * @param consumer
    */
   public void executeQuery(String sql, Consumer<ResultSet> consumer) {
-    
-    this.executeQuery(sql, DEFAULT_FETCHSIZE, consumer);
-    
+    this.executeQuery(null, sql, DEFAULT_FETCHSIZE, consumer);
+  }
+  
+  /**
+   *
+   * @param application
+   * @param sql
+   * @param consumer
+   */
+  public void executeQuery(Application application, String sql, Consumer<ResultSet> consumer) {
+    this.executeQuery(application, sql, DEFAULT_FETCHSIZE, consumer);
   }
 
   /**
    *
+   * @param <T>
    * @param sql
    * @param consumer
+   * @return 
    */
   public <T> T executeQuerySingleResult(String sql, Function<ResultSet, T> consumer) {
     MutableObject<T> obj = new MutableObject<>(null);
-    this.executeQuery(sql, DEFAULT_FETCHSIZE, (rs) -> {
+    this.executeQuery(null, sql, DEFAULT_FETCHSIZE, (rs) -> {
+      obj.setValue(consumer.apply(rs));
+    });
+    return obj.getValue();
+  }
+  
+  /**
+   * 
+   * @param <T>
+   * @param application
+   * @param sql
+   * @param consumer
+   * @return 
+   */
+  public <T> T executeQuerySingleResult(Application application, String sql, Function<ResultSet, T> consumer) {
+    MutableObject<T> obj = new MutableObject<>(null);
+    this.executeQuery(null, sql, DEFAULT_FETCHSIZE, (rs) -> {
       obj.setValue(consumer.apply(rs));
     });
     return obj.getValue();
@@ -204,12 +230,14 @@ public class DbConnection implements Serializable {
 
   /**
    *
+   * @param application
    * @param sql
    * @param fetchSize
    * @param consumer
    */
-  public void executeQuery(String sql, int fetchSize, Consumer<ResultSet> consumer) {
+  public void executeQuery(Application application, String sql, int fetchSize, Consumer<ResultSet> consumer) {
     Connection conn = this.getConnection();
+    
     try (PreparedStatement statement = conn.prepareCall(sql)) {
       statement.setFetchSize(fetchSize);
       conn.setAutoCommit(false);
@@ -269,6 +297,16 @@ public class DbConnection implements Serializable {
    */
   public Connection getConnection() {
     return this.connPool.getConnection();
+  }
+  
+  /**
+   * Returns a new connection.
+   *
+   * @param application
+   * @return
+   */
+  public Connection getConnection(Application application) {
+    return this.connPool.getConnection(application);
   }
 
   /**
