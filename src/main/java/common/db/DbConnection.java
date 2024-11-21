@@ -27,6 +27,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.commons.lang3.tuple.Pair;
 
 /**
  *
@@ -162,17 +163,17 @@ public class DbConnection implements Serializable {
     T result = list.isEmpty() ? null : list.get(0);
     return result;
   }
-  
+
   /**
-   * 
+   *
    * @param <T>
    * @param sql
    * @param mapper
-   * @return 
+   * @return
    */
   public <T> List<T> executeQuery(String sql, ResultMapper<T> mapper) {
     List<T> result = new ArrayList<>();
-    this.executeQuery(sql, (rs) -> {  
+    this.executeQuery(sql, (rs) -> {
       result.add(mapper.map(rs));
     });
     return result;
@@ -186,7 +187,7 @@ public class DbConnection implements Serializable {
   public void executeQuery(String sql, Consumer<ResultSet> consumer) {
     this.executeQuery(null, sql, DEFAULT_FETCHSIZE, consumer);
   }
-  
+
   /**
    *
    * @param application
@@ -202,7 +203,7 @@ public class DbConnection implements Serializable {
    * @param <T>
    * @param sql
    * @param consumer
-   * @return 
+   * @return
    */
   public <T> T executeQuerySingleResult(String sql, Function<ResultSet, T> consumer) {
     MutableObject<T> obj = new MutableObject<>(null);
@@ -211,14 +212,14 @@ public class DbConnection implements Serializable {
     });
     return obj.getValue();
   }
-  
+
   /**
-   * 
+   *
    * @param <T>
    * @param application
    * @param sql
    * @param consumer
-   * @return 
+   * @return
    */
   public <T> T executeQuerySingleResult(Application application, String sql, Function<ResultSet, T> consumer) {
     MutableObject<T> obj = new MutableObject<>(null);
@@ -237,7 +238,7 @@ public class DbConnection implements Serializable {
    */
   public void executeQuery(Application application, String sql, int fetchSize, Consumer<ResultSet> consumer) {
     Connection conn = this.getConnection();
-    
+
     try (PreparedStatement statement = conn.prepareCall(sql)) {
       statement.setFetchSize(fetchSize);
       conn.setAutoCommit(false);
@@ -298,7 +299,7 @@ public class DbConnection implements Serializable {
   public Connection getConnection() {
     return this.connPool.getConnection();
   }
-  
+
   /**
    * Returns a new connection.
    *
@@ -610,8 +611,7 @@ public class DbConnection implements Serializable {
             .createDbConnection();
     return createDbConnection;
   }
-  
-  
+
   /**
    *
    * @param statement
@@ -633,6 +633,77 @@ public class DbConnection implements Serializable {
       }
     } catch (Exception ex) {
       throw new RuntimeException(ex);
+    }
+    return result;
+  }
+  
+  
+  /**
+   * 
+   * @param <R>
+   * @param application
+   * @param statementTemplate
+   * @param records
+   * @param updateMe
+   * @return 
+   */
+  public <R> int[] executeStatementsBatch(Application application,
+          String statementTemplate, List<R> records, Consumer<Pair<PreparedStatement, R>> updateMe) {
+    Connection conn = this.getConnection(application);
+    return executeStatementsBatch(conn, statementTemplate, records, updateMe);
+  }
+  
+  
+  /**
+   * 
+   * @param <R>
+   * @param statementTemplate
+   * @param records
+   * @param updateMe
+   * @return 
+   */
+  public <R> int[] executeStatementsBatch(
+          String statementTemplate, List<R> records, Consumer<Pair<PreparedStatement, R>> updateMe) {
+    Connection conn = this.getConnection();
+    return executeStatementsBatch(conn, statementTemplate, records, updateMe);
+  }
+
+  /**
+   *
+   * @param <R>
+   * @param conn
+   * @param statementTemplate
+   * @param records
+   * @param updateMe
+   * @param result
+   * @return
+   * @throws RuntimeException
+   */
+  private <R> int[] executeStatementsBatch(Connection conn,
+          String statementTemplate, List<R> records, Consumer<Pair<PreparedStatement, R>> updateMe) {
+    int[] result;
+    
+    try (PreparedStatement statement = conn.prepareStatement(statementTemplate)) {
+      conn.setAutoCommit(false);
+      for (R record : records) {
+        updateMe.accept(Pair.of(statement, record));
+        statement.addBatch();
+      }
+      result = statement.executeBatch();
+      conn.commit();
+    } catch (SQLException ex) {
+      try {
+        conn.rollback();
+      } catch (SQLException rollbackEx) {
+        throw new RuntimeException("Rollback failed: " + rollbackEx.getMessage(), rollbackEx);
+      }
+      throw new RuntimeException("Batch execution failed: " + ex.getMessage(), ex);
+    } finally {
+      try {
+        conn.close();
+      } catch (SQLException ex) {
+        throw new RuntimeException("Failed to close connection: " + ex.getMessage(), ex);
+      }
     }
     return result;
   }
@@ -781,14 +852,14 @@ public class DbConnection implements Serializable {
     int result = this.executeSingleResultQuery(query, "column", Integer.class) + 1;
     return result;
   }
-  
+
   /**
-   * 
+   *
    * @param <T>
    * @param column
    * @param table
    * @param clazz
-   * @return 
+   * @return
    */
   public <T extends Number> T getLastSequence(String column, String table, Class<T> clazz) {
     String query = String.format("SELECT COALESCE(MAX(%s), 0) as column FROM %s", column, table);
