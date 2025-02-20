@@ -25,7 +25,7 @@ import org.locationtech.jts.geom.PrecisionModel;
  * @author Ricardo Marquez
  */
 public class RmObjects {
-
+  
   /**
    *
    * @param object
@@ -329,5 +329,4 @@ public class RmObjects {
     Measure<T> result = Measure.valueOf(value, unit);
     return result;
   }
-
 }
