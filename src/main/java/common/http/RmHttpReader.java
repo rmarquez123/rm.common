@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.net.ssl.HttpsURLConnection;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -52,8 +53,8 @@ public class RmHttpReader {
     String query = this.url.getQuery();
     String path = query == null ? this.url.toString() : this.url.toString().replace("", "");
     String newQueryParams = this.requestParams.entrySet().stream()
-      .map((e) -> e.getKey() + "=" + e.getValue())
-      .collect(Collectors.joining("&"));
+            .map((e) -> e.getKey() + "=" + e.getValue())
+            .collect(Collectors.joining("&"));
     URL updatedUrl;
     if (!newQueryParams.isEmpty()) {
       if (query == null) {
@@ -129,6 +130,9 @@ public class RmHttpReader {
   private InputStream getInputStream(URL updatedUrl, String requestMethod) {
     try {
       HttpURLConnection connection = (HttpURLConnection) updatedUrl.openConnection();
+      if (connection instanceof HttpsURLConnection) {
+        ((HttpsURLConnection) connection).setHostnameVerifier((hostname, session) -> true);
+      }
       connection.setRequestMethod(requestMethod);
       this.attrs.forEach((k, v) -> connection.setRequestProperty(k, v));
       InputStream connInputStream = this.getInputStream(connection);
@@ -163,8 +167,8 @@ public class RmHttpReader {
   private void post() {
     try {
       String newQueryParams = this.requestParams.entrySet().stream()
-        .map((e) -> e.getKey() + "=" + e.getValue())
-        .collect(Collectors.joining("&"));
+              .map((e) -> e.getKey() + "=" + e.getValue())
+              .collect(Collectors.joining("&"));
       HttpURLConnection connection = (HttpURLConnection) this.url.openConnection();
       connection.setRequestMethod("POST");
       connection.setDoOutput(true);
@@ -178,8 +182,8 @@ public class RmHttpReader {
       if (code != 200) {
         InputStream stream = connection.getErrorStream();
         String error = IOUtils.readLines(stream, Charset.defaultCharset()) //
-          .stream() //
-          .collect(Collectors.joining("\n"));
+                .stream() //
+                .collect(Collectors.joining("\n"));
         throw new RuntimeException(error);
       }
       System.out.println("code = " + code);
@@ -319,11 +323,10 @@ public class RmHttpReader {
       RmHttpReader reader = this.create();
       reader.post();
     }
-      
-    
+
     /**
-     * 
-     * @param consumer 
+     *
+     * @param consumer
      */
     public void post(Consumer<String> consumer) {
       RmHttpReader reader = this.create();
