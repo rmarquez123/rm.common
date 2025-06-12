@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.function.Consumer;
 
 /**
  *
@@ -14,7 +15,7 @@ public class HikariConnectionPool extends DefaultConnectionPool {
 
   private final HikariDataSource dataSource;
 
-  public HikariConnectionPool(String url, Integer port, String databaseName, String user, String password) {
+  public HikariConnectionPool(String url, Integer port, String databaseName, String user, String password, Consumer<HikariConfig> configHelper) {
     super(user, password, databaseName, url, port);
     String jdbcUrl = "jdbc:postgresql://" + url + ":" + port + "/" + databaseName;
     HikariConfig config = new HikariConfig();
@@ -22,6 +23,9 @@ public class HikariConnectionPool extends DefaultConnectionPool {
     config.setUsername(user);
     config.setPassword(password);
     config.setDriverClassName("org.postgresql.Driver");
+    if (configHelper != null) {
+      configHelper.accept(config);
+    }
     this.dataSource = new HikariDataSource(config);
   }
 
@@ -46,16 +50,18 @@ public class HikariConnectionPool extends DefaultConnectionPool {
   public void close() throws IOException {
     this.dataSource.close();
   }
-  
+
   /**
-   * 
+   *
    */
   public static class PoolBuilder {
+
     private String url;
-    private Integer port; 
-    private String databaseName; 
-    private String user; 
-    private String password; 
+    private Integer port;
+    private String databaseName;
+    private String user;
+    private String password;
+    private Consumer<HikariConfig> configHelper; 
 
     public PoolBuilder setUrl(String url) {
       this.url = url;
@@ -81,10 +87,16 @@ public class HikariConnectionPool extends DefaultConnectionPool {
       this.password = password;
       return this;
     }
+
+    public PoolBuilder setConfigHelper(Consumer<HikariConfig> configHelper) {
+      this.configHelper = configHelper;
+      return this;
+    }
     
     public HikariConnectionPool build() {
-      return new HikariConnectionPool(url, port, databaseName, user, password); 
+      return new HikariConnectionPool(url, port, databaseName, user, password, null);
     }
-  } 
+    
+  }
 
 }

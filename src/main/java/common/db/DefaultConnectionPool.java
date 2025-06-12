@@ -72,6 +72,30 @@ public class DefaultConnectionPool implements ConnectionPool {
 
   /**
    *
+   * @param application
+   * @return
+   */
+  @Override
+  public Connection getConnection(Application application) {
+    Connection result;
+    try {
+      String _url = this.getConnectionUrl(application);
+      String _username = this.user;
+      String _password = this.password;
+      try {
+        Class.forName("org.postgresql.Driver");
+      } catch (ClassNotFoundException ex) {
+        throw new RuntimeException(ex);
+      }
+      result = DriverManager.getConnection(_url, _username, _password);
+    } catch (SQLException ex) {
+      throw new RuntimeException(ex);
+    }
+    return result;
+  }
+
+  /**
+   *
    * @return
    */
   @Override
@@ -98,8 +122,24 @@ public class DefaultConnectionPool implements ConnectionPool {
   public String getConnectionUrl() {
     String sep = "//";
     String _url = "jdbc:postgresql:" + sep + this.url
-      + ":" + this.port
-      + "/" + this.databaseName;
+            + ":" + this.port
+            + "/" + this.databaseName;
+    return _url;
+  }
+
+  /**
+   *
+   * @return
+   */
+  @Override
+  public String getConnectionUrl(Application application) {
+    String appName = application.getName();
+    String sep = "//";
+    String _url = "jdbc:postgresql:" + sep + this.url
+            + ":" + this.port
+            + "/" + this.databaseName
+            + "?ApplicationName=" + appName;
+    
     return _url;
   }
 

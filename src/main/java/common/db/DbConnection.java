@@ -1,13 +1,16 @@
 package common.db;
 
 import common.process.ProcessFacade;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -27,6 +30,9 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.commons.lang3.tuple.Pair;
+import org.postgresql.PGConnection;
+import org.postgresql.copy.CopyManager;
 
 /**
  *
@@ -93,10 +99,11 @@ public class DbConnection implements Serializable {
     String valuePlaceHolders = StringUtils.repeat("?", separator, values.size());
     String sql = String.format("insert into %s (%s) values (%s)",
             new Object[]{table, columns, valuePlaceHolders});
-    Connection conn = this.getConnection();
     int effectedRows;
+    Connection conn = this.getConnection();
+    PreparedStatement statement;
     try {
-      PreparedStatement statement = conn.prepareStatement(sql);
+      statement = conn.prepareStatement(sql);
       this.setParamValues(values, statement);
       effectedRows = statement.executeUpdate();
     } catch (SQLException ex) {
@@ -161,17 +168,17 @@ public class DbConnection implements Serializable {
     T result = list.isEmpty() ? null : list.get(0);
     return result;
   }
-  
+
   /**
-   * 
+   *
    * @param <T>
    * @param sql
    * @param mapper
-   * @return 
+   * @return
    */
   public <T> List<T> executeQuery(String sql, ResultMapper<T> mapper) {
     List<T> result = new ArrayList<>();
-    this.executeQuery(sql, (rs) -> {  
+    this.executeQuery(sql, (rs) -> {
       result.add(mapper.map(rs));
     });
     return result;
@@ -183,17 +190,29 @@ public class DbConnection implements Serializable {
    * @param consumer
    */
   public void executeQuery(String sql, Consumer<ResultSet> consumer) {
-    this.executeQuery(sql, DEFAULT_FETCHSIZE, consumer);
+    this.executeQuery(null, sql, DEFAULT_FETCHSIZE, consumer);
   }
 
   /**
    *
+   * @param application
    * @param sql
    * @param consumer
    */
+  public void executeQuery(Application application, String sql, Consumer<ResultSet> consumer) {
+    this.executeQuery(application, sql, DEFAULT_FETCHSIZE, consumer);
+  }
+
+  /**
+   *
+   * @param <T>
+   * @param sql
+   * @param consumer
+   * @return
+   */
   public <T> T executeQuerySingleResult(String sql, Function<ResultSet, T> consumer) {
     MutableObject<T> obj = new MutableObject<>(null);
-    this.executeQuery(sql, DEFAULT_FETCHSIZE, (rs) -> {
+    this.executeQuery(null, sql, DEFAULT_FETCHSIZE, (rs) -> {
       obj.setValue(consumer.apply(rs));
     });
     return obj.getValue();
@@ -201,12 +220,30 @@ public class DbConnection implements Serializable {
 
   /**
    *
+   * @param <T>
+   * @param application
+   * @param sql
+   * @param consumer
+   * @return
+   */
+  public <T> T executeQuerySingleResult(Application application, String sql, Function<ResultSet, T> consumer) {
+    MutableObject<T> obj = new MutableObject<>(null);
+    this.executeQuery(null, sql, DEFAULT_FETCHSIZE, (rs) -> {
+      obj.setValue(consumer.apply(rs));
+    });
+    return obj.getValue();
+  }
+
+  /**
+   *
+   * @param application
    * @param sql
    * @param fetchSize
    * @param consumer
    */
-  public void executeQuery(String sql, int fetchSize, Consumer<ResultSet> consumer) {
+  public void executeQuery(Application application, String sql, int fetchSize, Consumer<ResultSet> consumer) {
     Connection conn = this.getConnection();
+
     try (PreparedStatement statement = conn.prepareCall(sql)) {
       statement.setFetchSize(fetchSize);
       conn.setAutoCommit(false);
@@ -266,6 +303,16 @@ public class DbConnection implements Serializable {
    */
   public Connection getConnection() {
     return this.connPool.getConnection();
+  }
+
+  /**
+   * Returns a new connection.
+   *
+   * @param application
+   * @return
+   */
+  public Connection getConnection(Application application) {
+    return this.connPool.getConnection(application);
   }
 
   /**
@@ -575,7 +622,7 @@ public class DbConnection implements Serializable {
    * @param statement
    * @return
    */
-  public int executeStatement(String statement) {
+  public synchronized int executeStatement(String statement) {
     int result;
     try (Connection conn = this.getConnection()) {
       PreparedStatement preparedStatement;
@@ -591,6 +638,238 @@ public class DbConnection implements Serializable {
       }
     } catch (Exception ex) {
       throw new RuntimeException(ex);
+    }
+    return result;
+  }
+  
+  /**
+   * 
+   * @param application
+   * @param statement
+   * @return 
+   */
+  public synchronized int executeStatement(Application application, String statement) {
+    int result;
+    try (Connection conn = this.getConnection(application)) {
+      PreparedStatement preparedStatement;
+      try {
+        preparedStatement = conn.prepareStatement(statement);
+      } catch (SQLException ex) {
+        throw new RuntimeException(ex);
+      }
+      try {
+        result = preparedStatement.executeUpdate();
+      } catch (SQLException ex) {
+        throw new RuntimeException(ex);
+      }
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
+    return result;
+  }
+
+  /**
+   *
+   * @param <R>
+   * @param application
+   * @param statementTemplate
+   * @param records
+   * @param updateMe
+   * @return
+   */
+  public <R> int[] executeStatementsBatch(Application application,
+          String statementTemplate, List<R> records, Consumer<Pair<PreparedStatement, R>> updateMe) {
+    Connection conn = this.getConnection(application);
+    return executeStatementsBatch(conn, statementTemplate, records, updateMe);
+  }
+
+  /**
+   *
+   * @param <R>
+   * @param statementTemplate
+   * @param records
+   * @param updateMe
+   * @return
+   */
+  public <R> int[] executeStatementsBatch(
+          String statementTemplate, List<R> records, Consumer<Pair<PreparedStatement, R>> updateMe) {
+    Connection conn = this.getConnection();
+    return executeStatementsBatch(conn, statementTemplate, records, updateMe);
+  }
+
+  /**
+   *
+   * @param <R>
+   * @param preStatement
+   * @param postStatement
+   * @param statementTemplate
+   * @param records
+   * @param updateMe
+   * @return
+   */
+  public <R> int[] executeStatementsBatch(String preStatement, String postStatement,
+          String statementTemplate, List<R> records, Consumer<Pair<PreparedStatement, R>> updateMe) {
+
+    Connection conn = this.getConnection();
+
+    int[] result;
+
+    try (PreparedStatement statement = conn.prepareStatement(statementTemplate)) {
+
+      conn.setAutoCommit(false);
+
+      try (Statement stmt = conn.createStatement()) {
+        stmt.execute(preStatement);
+      } catch (Exception ex) {
+        throw new RuntimeException(ex);
+      }
+
+      for (R record : records) {
+        updateMe.accept(Pair.of(statement, record));
+        statement.addBatch();
+      }
+      result = statement.executeBatch();
+      try (Statement stmt = conn.createStatement()) {
+        stmt.execute(postStatement);
+      } catch (Exception ex) {
+        throw new RuntimeException(ex);
+      }
+      try {
+        conn.commit();
+      } catch (SQLException ex) {
+        throw new RuntimeException();
+      }
+    } catch (SQLException ex) {
+      try {
+        conn.rollback();
+      } catch (SQLException rollbackEx) {
+        throw new RuntimeException("Rollback failed: " + rollbackEx.getMessage(), rollbackEx);
+      }
+      throw new RuntimeException("Batch execution failed: " + ex.getMessage(), ex);
+    } finally {
+      try {
+        conn.close();
+      } catch (SQLException ex) {
+        throw new RuntimeException("Failed to close connection: " + ex.getMessage(), ex);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Executes: 1) preStatement (e.g. CREATE TEMP TABLE ...), 2) copy data into
+   * the table (using COPY FROM STDIN), 3) postStatement (e.g. UPDATE main_table
+   * FROM temp_table).
+   *
+   * @param preStatement a SQL statement to run before COPY (may be DDL)
+   * @param postStatement a SQL statement to run after COPY (may be an UPDATE)
+   * @param copyTarget the COPY command target (e.g. "temp_table (col1, col2,
+   * ...)")
+   * @param records the data objects you want to copy
+   * @param recordToCsvLine a function that converts each record into a CSV line
+   * (no trailing newline)
+   * @return long[] with [0] = the count of rows copied, [1] = any other measure
+   * (you can refine)
+   */
+  public <R> long[] executeDirectCopyToTable(
+          String preStatement,
+          String postStatement,
+          String copyTarget,
+          List<R> records,
+          Function<R, String> recordToCsvLine
+  ) {
+    // We'll return how many rows got copied, possibly more details if you like
+    long[] result = new long[2];
+    Connection conn = this.getConnection();    
+    try {
+      conn.setAutoCommit(false);
+
+      // 1. Execute preStatement (e.g. create temp table)
+      try (Statement stmt = conn.createStatement()) {
+        stmt.execute(preStatement);
+      }
+      
+      // 2. Prepare CSV data in memory
+      StringBuilder sb = new StringBuilder();
+      for (R record : records) {
+        sb.append(recordToCsvLine.apply(record)).append("\n");
+      }
+      byte[] csvBytes = sb.toString().getBytes(StandardCharsets.UTF_8);
+      ByteArrayInputStream bais = new ByteArrayInputStream(csvBytes);
+      
+      // 3. Use CopyManager to COPY the data into the table
+      PGConnection pgConn = conn.unwrap(PGConnection.class);
+      CopyManager copyManager = pgConn.getCopyAPI();
+      // e.g. "COPY temp_table (col1, col2, col3) FROM STDIN (FORMAT csv)"
+      String copySql = "COPY " + copyTarget + " FROM STDIN (FORMAT csv)";
+      
+      // do the copy
+      long rowCount = copyManager.copyIn(copySql, bais);
+      result[0] = rowCount;  // number of rows copied
+      
+      // 4. Execute postStatement (e.g. update the main table from the temp table)
+      try (Statement stmt = conn.createStatement()) {
+        stmt.execute(postStatement);
+      }
+      
+      // Commit everything
+      conn.commit();
+    } catch (Exception ex) {
+      // Rollback on any error
+      try {
+        conn.rollback();
+      } catch (SQLException rollbackEx) {
+        throw new RuntimeException("Rollback failed: " + rollbackEx.getMessage(), rollbackEx);
+      }
+      throw new RuntimeException("Direct COPY failed: " + ex.getMessage(), ex);
+    } finally {
+      // Close connection
+      try {
+        conn.close();
+      } catch (SQLException ex) {
+        throw new RuntimeException("Failed to close connection: " + ex.getMessage(), ex);
+      }
+    }
+    return result;
+  }
+
+  /**
+   *
+   * @param <R>
+   * @param conn
+   * @param statementTemplate
+   * @param records
+   * @param updateMe
+   * @param result
+   * @return
+   * @throws RuntimeException
+   */
+  private <R> int[] executeStatementsBatch(Connection conn,
+          String statementTemplate, List<R> records, Consumer<Pair<PreparedStatement, R>> updateMe) {
+    int[] result;
+
+    try (PreparedStatement statement = conn.prepareStatement(statementTemplate)) {
+      conn.setAutoCommit(false);
+      for (R record : records) {
+        updateMe.accept(Pair.of(statement, record));
+        statement.addBatch();
+      }
+      result = statement.executeBatch();
+      conn.commit();
+    } catch (SQLException ex) {
+      try {
+        conn.rollback();
+      } catch (SQLException rollbackEx) {
+        throw new RuntimeException("Rollback failed: " + rollbackEx.getMessage(), rollbackEx);
+      }
+      throw new RuntimeException("Batch execution failed: " + ex.getMessage(), ex);
+    } finally {
+      try {
+        conn.close();
+      } catch (SQLException ex) {
+        throw new RuntimeException("Failed to close connection: " + ex.getMessage(), ex);
+      }
     }
     return result;
   }
@@ -739,14 +1018,26 @@ public class DbConnection implements Serializable {
     int result = this.executeSingleResultQuery(query, "column", Integer.class) + 1;
     return result;
   }
-  
+
   /**
-   * 
+   *
+   * @param column
+   * @param table
+   * @return
+   */
+  public long getNextSequenceLong(String column, String table) {
+    String query = String.format("SELECT COALESCE(MAX(%s), 0) as column FROM %s", column, table);
+    long result = this.executeSingleResultQuery(query, "column", Long.class) + 1L;
+    return result;
+  }
+
+  /**
+   *
    * @param <T>
    * @param column
    * @param table
    * @param clazz
-   * @return 
+   * @return
    */
   public <T extends Number> T getLastSequence(String column, String table, Class<T> clazz) {
     String query = String.format("SELECT COALESCE(MAX(%s), 0) as column FROM %s", column, table);

@@ -6,6 +6,20 @@ package common.types;
  */
 public class Progress {
 
+  /**
+   * 
+   * @param i
+   * @param size
+   * @param messageFormat
+   * @return 
+   */
+  public static Progress create(int i, int size, String messageFormat) {
+    String message = String.format(messageFormat, i, size);
+    double progressValue = (double) i/((double) size) * 100;
+    Progress result = new Progress(progressValue, message);
+    return result;
+  }
+
   private final String message;
   private final double progress;
     
